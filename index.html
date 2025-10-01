@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theater Call Board</title>
+<style>
+body {font-family:'Arial',sans-serif;background:#111;margin:0;color:#FFD700;}
+header {background:#000;color:#FFD700;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
+main {padding:1rem;max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 400px;gap:1rem;}
+section {background:#1a1a1a;padding:1rem;border-radius:10px;}
+h2 {margin-top:0;color:#FFD700;}
+table {width:100%;border-collapse:collapse;margin-top:0.5rem;}
+th,td {border:1px solid #333;padding:0.5rem;text-align:left;color:#FFD700;}
+th {background:#222;font-weight:600;}
+.btn {border:0;padding:0.3rem 0.6rem;border-radius:6px;cursor:pointer;margin-right:0.3rem;margin-top:0.2rem;font-weight:bold;}
+.btn-primary {background:#FFD700;color:#000;}
+.btn-danger {background:#c0392b;color:#fff;}
+.btn-warning {background:#f39c12;color:#000;}
+.btn-ghost {background:#333;color:#FFD700;}
+.hidden {display:none!important;}
+input.inline-input {width:100%;padding:0.4rem;border-radius:6px;border:1px solid #555;margin-bottom:0.3rem;background:#222;color:#FFD700;box-sizing:border-box;}
+.notice {font-size:0.9rem;color:#ccc;margin-top:0.5rem;}
+.highlight {background:#444;border-radius:6px;padding:0.2rem;margin-bottom:0.2rem;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>Theater Call Board</div>
+  <div id="auth-area">
+    <div id="signed-out-controls">
+      <input id="username-input" placeholder="username">
+      <input id="password-input" type="password" placeholder="password">
+      <button id="signin-btn" class="btn btn-primary">Sign In</button>
+    </div>
+    <div id="signed-in-controls" class="hidden">
+      <span id="signed-in-as"></span>
+      <button id="signout-btn" class="btn btn-ghost">Sign Out</button>
+    </div>
+  </div>
+</header>
+
+<div id="portal-content" class="hidden">
+<main>
+<div>
+  <section id="director-summary-section" class="hidden">
+    <h2>Next Calls Summary</h2>
+    <div id="next-call-summary"></div>
+  </section>
+
+  <section id="schedule-section">
+    <h2>Schedule</h2>
+    <button id="add-schedule-toggle" class="btn btn-primary hidden">Add Schedule</button>
+    <div id="add-schedule-form" class="hidden">
+      <input id="new-date" class="inline-input" placeholder="YYYY-MM-DD">
+      <input id="new-time" class="inline-input" placeholder="Time (e.g., 5:00 PM)">
+      <input id="new-who" class="inline-input" placeholder="Who (e.g., Full Cast)">
+      <input id="new-details" class="inline-input" placeholder="Details">
+      <button id="add-schedule-btn" class="btn btn-primary">Save</button>
+      <button id="cancel-add-schedule" class="btn btn-ghost">Cancel</button>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Time</th><th>Who</th><th>Details</th><th>Actions</th></tr></thead>
+      <tbody id="schedule-table-body"></tbody>
+    </table>
+  </section>
+
+  <section id="announcements-section">
+    <h2>Announcements</h2>
+    <div id="announcement-list"></div>
+    <input id="announcement-input" class="inline-input hidden" placeholder="New announcement">
+    <button id="add-announcement-btn" class="btn btn-primary hidden">Add Announcement</button>
+  </section>
+
+  <section id="attendance-report-section" class="hidden">
+    <h2>Attendance Report</h2>
+    <button id="export-csv" class="btn btn-primary">Export CSV</button>
+    <table>
+      <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Time</th><th>Marked By</th></tr></thead>
+      <tbody id="attendance-report-body"></tbody>
+    </table>
+  </section>
+</div>
+
+<div>
+  <section>
+    <h2>Attendance</h2>
+    <div id="attendance-list"></div>
+  </section>
+</div>
+</main>
+</div>
+
+<script>
+// --- USERS ---
+const USERS = {
+"lnewton":{password:"?2@2yzz~PVJf",name:"L. Newton",role:"Director"},
+"tbeck":{password:"pHR68Db.Pw.#",name:"T. Beck",role:"Director"},
+"gloshe":{password:"iT=hy!7G9NTf",name:"G. Loshe",role:"Director"},
+"bflieder":{password:"-W9m=>D_AUzF",name:"B. Flieder",role:"Director"},
+"cclark":{password:"iJ+va7>Df}#@",name:"C. Clark",role:"Director"},
+"ljulien":{password:";3y2Paz9£9?m",name:"Logan Julien",role:"Stage Manager"},
+"hflowers":{password:"i£08um?B51.x",name:"Haley Flowers",role:"Stage Manager"},
+"nwalker":{password:"9^1~R7C*QVdV",name:"Natalie Walker",role:"Stage Manager"},
+"apate":{password:"y~D+V3R-37Wt",name:"Annaston Pate",role:"Actor"},
+"cbeck":{password:"G?5sLRCkZYCg",name:"C. Beck",role:"Actor"},
+"sjulien":{password:"#0Y57gk*b?Jq",name:"S. Julien",role:"Actor"},
+"agipson":{password:"c!?xGW2JvB:2",name:"A. Gipson",role:"Actor"},
+"owyatt":{password:"9vq-B#4q]}>.",name:"O. Wyatt",role:"Actor"},
+"swyatt":{password:"B?2jjtvNqtq_",name:"S. Wyatt",role:"Actor"},
+"afry":{password:"5Mxc,kQpd,!T",name:"A. Fry",role:"Actor"},
+"rromero":{password:"=4A*pq+xQq:!",name:"R. Romero",role:"Actor"},
+"gromero":{password:"j.dab8,6X_m2",name:"G. Romero",role:"Actor"}
+};
+
+// --- LOCAL STORAGE ---
+const LS={currentUser:"cb_currentUser",schedule:"cb_schedule",announcements:"cb_announcements",attendance:"cb_attendance"};
+function saveJSON(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function loadJSON(k,def){try{return JSON.parse(localStorage.getItem(k)||"null")||def}catch(e){return def}}
+function getCurrentUser(){const u=localStorage.getItem(LS.currentUser);return u&&USERS[u]?{username:u,...USERS[u]}:null}
+function isSM(u){return u&&u.role==="Stage Manager"}
+function isDirector(u){return u&&u.role==="Director"}
+function formatTime(t){return new Date(t).toLocaleString()}
+
+// --- AUTH ---
+const signinBtn=document.getElementById("signin-btn");
+const signoutBtn=document.getElementById("signout-btn");
+const usernameInput=document.getElementById("username-input");
+const passwordInput=document.getElementById("password-input");
+const signedOutControls=document.getElementById("signed-out-controls");
+const signedInControls=document.getElementById("signed-in-controls");
+const signedInAs=document.getElementById("signed-in-as");
+const portalContent=document.getElementById("portal-content");
+
+signinBtn.onclick=()=>{
+  const u=usernameInput.value.trim(),p=passwordInput.value;
+  if(!USERS[u]){alert("Unknown username"); return;}
+  if(USERS[u].password!==p){alert("Wrong password"); return;}
+  localStorage.setItem(LS.currentUser,u);
+  usernameInput.value=""; passwordInput.value="";
+  updateAuthUI(); renderAll();
+}
+signoutBtn.onclick=()=>{ localStorage.removeItem(LS.currentUser); updateAuthUI(); renderAll(); }
+
+function updateAuthUI(){
+  const cur=getCurrentUser();
+  const addScheduleToggle=document.getElementById("add-schedule-toggle");
+  const addScheduleForm=document.getElementById("add-schedule-form");
+  const announcementInput=document.getElementById("announcement-input");
+  const addAnnouncementBtn=document.getElementById("add-announcement-btn");
+  const attendanceReportSection=document.getElementById("attendance-report-section");
+  const directorSummary=document.getElementById("director-summary-section");
+
+  if(cur){
+    signedOutControls.classList.add("hidden");
+    signedInControls.classList.remove("hidden");
+    signedInAs.textContent=`Signed in as ${cur.name} (${cur.role})`;
+    portalContent.classList.remove("hidden");
+
+    const canManage=isSM(cur)||isDirector(cur);
+    addScheduleToggle.classList.toggle("hidden",!canManage);
+    addScheduleForm.classList.add("hidden");
+    announcementInput.classList.toggle("hidden",!canManage);
+    addAnnouncementBtn.classList.toggle("hidden",!canManage);
+    attendanceReportSection.classList.toggle("hidden",!canManage);
+    directorSummary.classList.toggle("hidden",!isDirector(cur));
+
+    addScheduleToggle.onclick=()=>{addScheduleForm.classList.toggle("hidden")};
+    document.getElementById("cancel-add-schedule").onclick=()=>{addScheduleForm.classList.add("hidden")};
+    document.getElementById("add-schedule-btn").onclick=addSchedule;
+    addAnnouncementBtn.onclick=addAnnouncement;
+    document.getElementById("export-csv").onclick=exportAttendanceCSV;
+
+  } else {
+    signedOutControls.classList.remove("hidden");
+    signedInControls.classList.add("hidden");
+    portalContent.classList.add("hidden");
+  }
+}
+
+// --- DATA ---
+let schedule=loadJSON(LS.schedule,[]);
+let announcements=loadJSON(LS.announcements,[]);
+let attendance=loadJSON(LS.attendance,{});
+
+// --- ELEMENTS ---
+const scheduleTableBody=document.getElementById("schedule-table-body");
+const announcementList=document.getElementById("announcement-list");
+const attendanceListDiv=document.getElementById("attendance-list");
+const attendanceReportBody=document.getElementById("attendance-report-body");
+const nextCallSummaryDiv=document.getElementById("next-call-summary");
+
+// --- RENDER FUNCTIONS ---
+function renderSchedule(){
+  const cur=getCurrentUser();
+  scheduleTableBody.innerHTML="";
+  schedule.sort((a,b)=>new Date(a.date+" "+a.time)-new Date(b.date+" "+b.time));
+  schedule.forEach((s,i)=>{
+    if(cur.role==="Actor" && !s.who.toLowerCase().includes(cur.name.toLowerCase())) return;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${s.date}</td><td>${s.time}</td><td>${s.who}</td><td>${s.details}</td>
+    <td>${(isSM(cur)||isDirector(cur))?`<button class="btn btn-warning" onclick="editSchedule(${i})">Edit</button>
+    <button class="btn btn-danger" onclick="deleteSchedule(${i})">Delete</button>`:""}</td>`;
+    scheduleTableBody.appendChild(tr);
+  });
+}
+
+function renderAnnouncements(){
+  const cur=getCurrentUser();
+  announcementList.innerHTML="";
+  announcements.forEach((a,i)=>{
+    const div=document.createElement("div"); div.className="notice"; div.textContent=a;
+    if(isSM(cur)||isDirector(cur)){
+      const delBtn=document.createElement("button");
+      delBtn.textContent="Delete"; delBtn.className="btn btn-danger";
+      delBtn.onclick=()=>{announcements.splice(i,1);saveJSON(LS.announcements,announcements); renderAnnouncements();}
+      div.appendChild(delBtn);
+    }
+    announcementList.appendChild(div);
+  });
+}
+
+function renderAttendance(){
+  const cur=getCurrentUser();
+  attendanceListDiv.innerHTML="";
+  Object.keys(USERS).forEach(u=>{
+    if(cur.role==="Actor" && u!==cur.username) return;
+    const tr=document.createElement("div");
+    const status=attendance[u]?.status||"Not Marked";
+    tr.innerHTML=`${USERS[u].name} (${USERS[u].role}): <button class="btn btn-primary">${status}</button>`;
+    const btn=tr.querySelector("button");
+    btn.onclick = () => {
+      const mark = prompt("Mark as: Present, Absent, Tardy, Left Early", "Present");
+      const valid = ["Present", "Absent", "Tardy", "Left Early"];
+      if(valid.includes(mark)){
+        attendance[u] = {status: mark, time: Date.now(), by: cur.name};
+        saveJSON(LS.attendance, attendance);
+        renderAttendance(); renderAttendanceReport();
+      } else { alert("Invalid status. Use: Present, Absent, Tardy, Left Early."); }
+    };
+    attendanceListDiv.appendChild(tr);
+  });
+}
+
+function renderAttendanceReport(){
+  attendanceReportBody.innerHTML="";
+  Object.keys(attendance).forEach(u=>{
+    const a=attendance[u];
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${USERS[u].name}</td><td>${USERS[u].role}</td><td>${a.status}</td><td>${formatTime(a.time)}</td><td>${a.by}</td>`;
+    attendanceReportBody.appendChild(tr);
+  });
+}
+
+function renderDirectorSummary(){
+  const cur=getCurrentUser();
+  if(!isDirector(cur)) return;
+  nextCallSummaryDiv.innerHTML="";
+  const upcoming=schedule.filter(s=>new Date(s.date+" "+s.time)>new Date()).slice(0,5);
+  upcoming.forEach(s=>{
+    const div=document.createElement("div"); div.className="highlight";
+    div.textContent=`${s.date} ${s.time}: ${s.who} - ${s.details}`;
+    nextCallSummaryDiv.appendChild(div);
+  });
+}
+
+function renderAll(){renderSchedule(); renderAnnouncements(); renderAttendance(); renderAttendanceReport(); renderDirectorSummary();}
+
+// --- HANDLERS ---
+function addSchedule(){
+  const d=document.getElementById("new-date").value;
+  const t=document.getElementById("new-time").value;
+  const w=document.getElementById("new-who").value;
+  const det=document.getElementById("new-details").value;
+  if(d && t && w){schedule.push({date:d,time:t,who:w,details:det}); saveJSON(LS.schedule,schedule);
+    document.getElementById("add-schedule-form").classList.add("hidden"); renderSchedule(); renderDirectorSummary();}
+  else alert("Fill all fields");
+}
+
+function addAnnouncement(){
+  const txt=document.getElementById("announcement-input").value.trim();
+  if(txt){announcements.push(txt); saveJSON(LS.announcements,announcements);
+    document.getElementById("announcement-input").value=""; renderAnnouncements();}
+}
+
+window.editSchedule=(i)=>{
+  const s=schedule[i];
+  const newWho=prompt("Who?",s.who); const newDate=prompt("Date?",s.date);
+  const newTime=prompt("Time?",s.time); const newDet=prompt("Details?",s.details);
+  if(newWho && newDate && newTime){schedule[i]={date:newDate,time:newTime,who:newWho,details:newDet};
+    saveJSON(LS.schedule,schedule); renderSchedule(); renderDirectorSummary();}
+}
+
+window.deleteSchedule=(i)=>{if(confirm("Delete this schedule?")){schedule.splice(i,1); saveJSON(LS.schedule,schedule); renderSchedule(); renderDirectorSummary();}}
+
+function exportAttendanceCSV(){
+  let csv="Name,Role,Status,Time,Marked By\n";
+  Object.keys(attendance).forEach(u=>{
+    const a=attendance[u];
+    csv+=`${USERS[u].name},${USERS[u].role},${a.status},${formatTime(a.time)},${a.by}\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="attendance.csv"; a.click(); URL.revokeObjectURL(url);
+}
+
+// INITIALIZE
+updateAuthUI(); renderAll();
+</script>
+
+</body>
+</html>
