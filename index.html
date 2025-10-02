@@ -1,176 +1,385 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Theater Call Board</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Theater Call Board — Black & Gold</title>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Vf4Q6YyqK5P4wq3l2q6gJzA3c+QJdBrS6p8YwC9uK1p2t2bqv3xQvF2k8R9rI0n6KQXw5Z1v6zE9qv8z7G2qg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 <style>
-body {font-family:'Arial',sans-serif;background:#111;margin:0;color:#FFD700;}
-header {background:#000;color:#FFD700;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
-main {padding:1rem;max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 400px;gap:1rem;}
-section {background:#1a1a1a;padding:1rem;border-radius:10px;}
-h2 {margin-top:0;color:#FFD700;}
-table {width:100%;border-collapse:collapse;margin-top:0.5rem;}
-th,td {border:1px solid #333;padding:0.5rem;text-align:left;color:#FFD700;}
-th {background:#222;font-weight:600;}
-.btn {border:0;padding:0.3rem 0.6rem;border-radius:6px;cursor:pointer;margin-right:0.3rem;margin-top:0.2rem;font-weight:bold;}
-.btn-primary {background:#FFD700;color:#000;}
-.btn-danger {background:#c0392b;color:#fff;}
-.btn-warning {background:#f39c12;color:#000;}
-.btn-ghost {background:#333;color:#FFD700;}
-.hidden {display:none!important;}
-input.inline-input {width:100%;padding:0.4rem;border-radius:6px;border:1px solid #555;margin-bottom:0.3rem;background:#222;color:#FFD700;box-sizing:border-box;}
-.notice {font-size:0.9rem;color:#ccc;margin-top:0.5rem;}
-.highlight {background:#444;border-radius:6px;padding:0.2rem;margin-bottom:0.2rem;}
+:root{
+  --bg:#0b0b0b;
+  --card:#121212;
+  --muted:#999;
+  --gold:#FFD166;
+  --gold-dark:#e0b64f;
+  --accent:#ffd95a;
+  --danger:#e74c3c;
+  --success:#2ecc71;
+  --glass: rgba(255,255,255,0.03);
+  --radius:12px;
+  --maxw:1100px;
+  --shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:linear-gradient(180deg,var(--bg),#040404);
+  color:var(--gold);
+  font-family:"Montserrat",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  padding-bottom:40px;
+}
+
+/* Top bar */
+.header {
+  position:sticky;
+  top:0;
+  z-index:30;
+  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.65));
+  border-bottom: 1px solid rgba(255,215,102,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 20px;
+}
+.brand {display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.05rem}
+.brand .logo{
+  width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  display:flex;align-items:center;justify-content:center;color:#000;font-weight:800;box-shadow:0 4px 12px rgba(255,200,50,0.12)
+}
+.header-right{display:flex;align-items:center;gap:10px}
+
+/* container */
+.container{max-width:var(--maxw);margin:20px auto;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:18px}
+@media(max-width:920px){ .container{grid-template-columns:1fr; padding:0 12px} }
+
+/* cards */
+.card{
+  background:linear-gradient(180deg,var(--card),#0f0f0f);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  border:1px solid rgba(255,215,102,0.04);
+}
+.card h3{margin:0 0 8px 0;font-size:1rem;color:var(--gold);font-weight:700}
+
+/* nav tabs */
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{
+  background:transparent;border:1px solid transparent;color:var(--gold);padding:6px 10px;border-radius:10px;cursor:pointer;font-weight:600;
+}
+.tab.active{background:rgba(255,215,102,0.08);border-color:rgba(255,215,102,0.12)}
+
+/* form inputs */
+.input, input.inline-input{
+  width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--gold);
+  outline:none;font-size:0.95rem;
+}
+.small{font-size:0.85rem;color:var(--muted);}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+.btn .fa{opacity:0.95}
+.btn-primary{background:var(--gold);color:#080808}
+.btn-ghost{background:transparent;color:var(--gold);border:1px solid rgba(255,255,255,0.04)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--gold-dark);color:#000}
+.btn-sm{padding:6px 8px;font-size:0.9rem;border-radius:6px}
+
+/* hover effects */
+.btn, .tab{transition:all .18s ease}
+.btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.tab:hover{background:rgba(255,255,255,0.02)}
+
+/* schedule table */
+.table{width:100%;border-collapse:collapse;margin-top:10px}
+.table th, .table td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.95rem;color:var(--gold)}
+.table th{font-weight:700;background:transparent;text-align:left;color:var(--gold)}
+.actions{display:flex;gap:6px}
+
+/* attendance badges */
+.badge{display:inline-block;padding:6px 8px;border-radius:8px;font-weight:700}
+.badge.present{background:rgba(46,204,113,0.12);color:var(--success)}
+.badge.absent{background:rgba(231,76,60,0.08);color:var(--danger)}
+.badge.tardy{background:rgba(255,215,102,0.08);color:var(--gold)}
+.badge.left{background:rgba(200,200,200,0.06);color:#ccc}
+
+/* announcement list */
+.announcement{border-radius:8px;padding:10px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,215,102,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02)}
+
+/* attendance list layout */
+.att-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+.att-left{display:flex;gap:10px;align-items:center}
+.role-pill{font-size:0.8rem;color:var(--muted);background:transparent;padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.controls{display:flex;gap:6px;align-items:center}
+
+/* small helpers */
+.muted{color:var(--muted);font-size:0.9rem}
+.center{display:flex;align-items:center;justify-content:center}
+.footer-note{font-size:0.85rem;color:#bfbfbf;margin-top:12px;text-align:center}
+
+/* responsive */
+@media (max-width:560px){
+  .header{padding:10px}
+  .brand{font-size:0.95rem}
+  .container{gap:12px}
+  .btn{padding:8px}
+}
+
 </style>
 </head>
 <body>
 
-<header>
-  <div>Theater Call Board</div>
-  <div id="auth-area">
-    <div id="signed-out-controls">
-      <input id="username-input" placeholder="username">
-      <input id="password-input" type="password" placeholder="password">
-      <button id="signin-btn" class="btn btn-primary">Sign In</button>
-    </div>
-    <div id="signed-in-controls" class="hidden">
-      <span id="signed-in-as"></span>
-      <button id="signout-btn" class="btn btn-ghost">Sign Out</button>
+<!-- HEADER -->
+<div class="header">
+  <div class="brand">
+    <div class="logo">PG</div>
+    <div>
+      <div style="font-weight:800">PG Theater</div>
+      <div style="font-size:0.80rem;color:rgba(255,215,102,0.8)">Call Board</div>
     </div>
   </div>
-</header>
 
-<div id="portal-content" class="hidden">
-<main>
-<div>
-  <section id="director-summary-section" class="hidden">
-    <h2>Next Calls Summary</h2>
-    <div id="next-call-summary"></div>
-  </section>
-
-  <section id="schedule-section">
-    <h2>Schedule</h2>
-    <button id="add-schedule-toggle" class="btn btn-primary hidden">Add Schedule</button>
-    <div id="add-schedule-form" class="hidden">
-      <input id="new-date" class="inline-input" placeholder="YYYY-MM-DD">
-      <input id="new-time" class="inline-input" placeholder="Time (e.g., 5:00 PM)">
-      <input id="new-who" class="inline-input" placeholder="Who (e.g., Full Cast)">
-      <input id="new-details" class="inline-input" placeholder="Details">
-      <button id="add-schedule-btn" class="btn btn-primary">Save</button>
-      <button id="cancel-add-schedule" class="btn btn-ghost">Cancel</button>
+  <div class="header-right">
+    <div id="signed-out-controls">
+      <input id="username-input" class="input" style="width:130px" placeholder="username">
+      <input id="password-input" class="input" style="width:160px" type="password" placeholder="password">
+      <button id="signin-btn" class="btn btn-primary"><i class="fa fa-right-to-bracket"></i> Sign In</button>
     </div>
-    <table>
-      <thead><tr><th>Date</th><th>Time</th><th>Who</th><th>Details</th><th>Actions</th></tr></thead>
-      <tbody id="schedule-table-body"></tbody>
-    </table>
-  </section>
 
-  <section id="announcements-section">
-    <h2>Announcements</h2>
-    <div id="announcement-list"></div>
-    <input id="announcement-input" class="inline-input hidden" placeholder="New announcement">
-    <button id="add-announcement-btn" class="btn btn-primary hidden">Add Announcement</button>
-  </section>
-
-  <section id="attendance-report-section" class="hidden">
-    <h2>Attendance Report</h2>
-    <button id="export-csv" class="btn btn-primary">Export CSV</button>
-    <table>
-      <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Time</th><th>Marked By</th></tr></thead>
-      <tbody id="attendance-report-body"></tbody>
-    </table>
-  </section>
+    <div id="signed-in-controls" class="hidden" style="align-items:center;gap:12px">
+      <div id="signed-in-as" class="muted"></div>
+      <button id="signout-btn" class="btn btn-ghost"><i class="fa fa-sign-out-alt"></i> Sign Out</button>
+    </div>
+  </div>
 </div>
 
-<div>
-  <section>
-    <h2>Attendance</h2>
-    <div id="attendance-list"></div>
-  </section>
+<!-- MAIN -->
+<div class="container">
+
+  <!-- LEFT: main content -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- director summary (hidden except for directors) -->
+    <div id="director-summary-section" class="card hidden">
+      <h3><i class="fa fa-star"></i> Next Calls (Director)</h3>
+      <div id="next-call-summary" class="muted"></div>
+    </div>
+
+    <!-- schedule card -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3><i class="fa fa-calendar"></i> Schedule</h3>
+        <div>
+          <button id="add-schedule-toggle" class="btn btn-primary hidden"><i class="fa fa-plus"></i> New Call</button>
+        </div>
+      </div>
+
+      <div id="add-schedule-form" class="hidden" style="margin-top:12px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="new-date" class="input" placeholder="YYYY-MM-DD">
+          <input id="new-time" class="input" placeholder="Time (e.g., 5:00 PM)">
+        </div>
+        <input id="new-who" class="input" placeholder="Who (e.g., Full Cast)">
+        <input id="new-details" class="input" placeholder="Details (location, notes)">
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="add-schedule-btn" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+          <button id="cancel-add-schedule" class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+
+      <table class="table" aria-live="polite">
+        <thead><tr><th>Date</th><th>Time</th><th>Who</th><th>Details</th><th></th></tr></thead>
+        <tbody id="schedule-table-body"></tbody>
+      </table>
+      <div class="footer-note">Pro tip: directors can highlight important calls by editing details and adding “⭐”</div>
+    </div>
+
+    <!-- announcements card -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3><i class="fa fa-bullhorn"></i> Announcements</h3>
+        <div id="ann-controls">
+          <input id="announcement-input" class="input hidden" placeholder="Write an announcement...">
+          <button id="add-announcement-btn" class="btn btn-primary hidden"><i class="fa fa-plus"></i> Add</button>
+        </div>
+      </div>
+
+      <div id="announcement-list" style="margin-top:12px"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: attendance -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <h3><i class="fa fa-user-check"></i> Attendance</h3>
+      <div id="attendance-list" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card hidden" id="attendance-report-section">
+      <h3><i class="fa fa-file-csv"></i> Attendance Report</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="muted">Export or review attendance</div>
+        <div>
+          <button id="export-csv" class="btn btn-primary"><i class="fa fa-download"></i> Export CSV</button>
+        </div>
+      </div>
+      <table class="table">
+        <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Time</th><th>Marked By</th></tr></thead>
+        <tbody id="attendance-report-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+
 </div>
-</main>
+
+<!-- footer / small note -->
+<div style="max-width:var(--maxw);margin:18px auto;padding:0 16px;color:#9b9b9b;font-size:0.9rem">
+  <div style="text-align:center">Made for PG Theater — localStorage based demo. Want a server-backed version, mobile PWA or login via LDAP/SSO? I can help.</div>
 </div>
 
 <script>
-// --- USERS ---
+/* -----------------------------
+   DATA & USERS (unchanged)
+   ----------------------------- */
 const USERS = {
-"lnewton":{password:"?2@2yzz~PVJf",name:"L. Newton",role:"Director"},
-"tbeck":{password:"pHR68Db.Pw.#",name:"T. Beck",role:"Director"},
-"gloshe":{password:"iT=hy!7G9NTf",name:"G. Loshe",role:"Director"},
-"bflieder":{password:"-W9m=>D_AUzF",name:"B. Flieder",role:"Director"},
-"cclark":{password:"iJ+va7>Df}#@",name:"C. Clark",role:"Director"},
-"ljulien":{password:";3y2Paz9£9?m",name:"Logan Julien",role:"Stage Manager"},
-"hflowers":{password:"i£08um?B51.x",name:"Haley Flowers",role:"Stage Manager"},
-"nwalker":{password:"9^1~R7C*QVdV",name:"Natalie Walker",role:"Stage Manager"},
-"apate":{password:"y~D+V3R-37Wt",name:"Annaston Pate",role:"Actor"},
-"cbeck":{password:"G?5sLRCkZYCg",name:"C. Beck",role:"Actor"},
-"sjulien":{password:"#0Y57gk*b?Jq",name:"S. Julien",role:"Actor"},
-"agipson":{password:"c!?xGW2JvB:2",name:"A. Gipson",role:"Actor"},
-"owyatt":{password:"9vq-B#4q]}>.",name:"O. Wyatt",role:"Actor"},
-"swyatt":{password:"B?2jjtvNqtq_",name:"S. Wyatt",role:"Actor"},
-"afry":{password:"5Mxc,kQpd,!T",name:"A. Fry",role:"Actor"},
-"rromero":{password:"=4A*pq+xQq:!",name:"R. Romero",role:"Actor"},
-"gromero":{password:"j.dab8,6X_m2",name:"G. Romero",role:"Actor"}
+  "lnewton":{password:"?2@2yzz~PVJf",name:"L. Newton",role:"Director"},
+  "tbeck":{password:"pHR68Db.Pw.#",name:"T. Beck",role:"Director"},
+  "gloshe":{password:"iT=hy!7G9NTf",name:"G. Loshe",role:"Director"},
+  "bflieder":{password:"-W9m=>D_AUzF",name:"B. Flieder",role:"Director"},
+  "cclark":{password:"iJ+va7>Df}#@",name:"C. Clark",role:"Director"},
+  "ljulien":{password:";3y2Paz9£9?m",name:"Logan Julien",role:"Stage Manager"},
+  "hflowers":{password:"i£08um?B51.x",name:"Haley Flowers",role:"Stage Manager"},
+  "nwalker":{password:"9^1~R7C*QVdV",name:"Natalie Walker",role:"Stage Manager"},
+  "apate":{password:"y~D+V3R-37Wt",name:"Annaston Pate",role:"Actor"},
+  "cbeck":{password:"G?5sLRCkZYCg",name:"C. Beck",role:"Actor"},
+  "sjulien":{password:"#0Y57gk*b?Jq",name:"S. Julien",role:"Actor"},
+  "agipson":{password:"c!?xGW2JvB:2",name:"A. Gipson",role:"Actor"},
+  "owyatt":{password:"9vq-B#4q]}>.",name:"O. Wyatt",role:"Actor"},
+  "swyatt":{password:"B?2jjtvNqtq_",name:"S. Wyatt",role:"Actor"},
+  "afry":{password:"5Mxc,kQpd,!T",name:"A. Fry",role:"Actor"},
+  "rromero":{password:"=4A*pq+xQq:!",name:"R. Romero",role:"Actor"},
+  "gromero":{password:"j.dab8,6X_m2",name:"G. Romero",role:"Actor"}
 };
 
-// --- LOCAL STORAGE ---
-const LS={currentUser:"cb_currentUser",schedule:"cb_schedule",announcements:"cb_announcements",attendance:"cb_attendance"};
-function saveJSON(k,v){localStorage.setItem(k,JSON.stringify(v))}
-function loadJSON(k,def){try{return JSON.parse(localStorage.getItem(k)||"null")||def}catch(e){return def}}
-function getCurrentUser(){const u=localStorage.getItem(LS.currentUser);return u&&USERS[u]?{username:u,...USERS[u]}:null}
-function isSM(u){return u&&u.role==="Stage Manager"}
-function isDirector(u){return u&&u.role==="Director"}
-function formatTime(t){return new Date(t).toLocaleString()}
+const LS = {
+  currentUser: "cb_currentUser_v2",
+  schedule: "cb_schedule_v2",
+  announcements: "cb_announcements_v2",
+  attendance: "cb_attendance_v2"
+};
 
-// --- AUTH ---
-const signinBtn=document.getElementById("signin-btn");
-const signoutBtn=document.getElementById("signout-btn");
-const usernameInput=document.getElementById("username-input");
-const passwordInput=document.getElementById("password-input");
-const signedOutControls=document.getElementById("signed-out-controls");
-const signedInControls=document.getElementById("signed-in-controls");
-const signedInAs=document.getElementById("signed-in-as");
-const portalContent=document.getElementById("portal-content");
+function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function loadJSON(k,def){ try { return JSON.parse(localStorage.getItem(k) || "null") || def } catch(e){ return def } }
+function getCurrentUser(){ const u = localStorage.getItem(LS.currentUser); return u && USERS[u] ? { username: u, ...USERS[u] } : null }
+function isSM(user){ return user && user.role === "Stage Manager"; }
+function isDirector(user){ return user && user.role === "Director"; }
+function formatTime(t){ try{ return new Date(t).toLocaleString(); }catch(e){ return "" } }
 
-signinBtn.onclick=()=>{
-  const u=usernameInput.value.trim(),p=passwordInput.value;
-  if(!USERS[u]){alert("Unknown username"); return;}
-  if(USERS[u].password!==p){alert("Wrong password"); return;}
-  localStorage.setItem(LS.currentUser,u);
-  usernameInput.value=""; passwordInput.value="";
-  updateAuthUI(); renderAll();
-}
-signoutBtn.onclick=()=>{ localStorage.removeItem(LS.currentUser); updateAuthUI(); renderAll(); }
+/* -----------------------------
+   ELEMENTS
+   ----------------------------- */
+const signinBtn = document.getElementById("signin-btn");
+const signoutBtn = document.getElementById("signout-btn");
+const usernameInput = document.getElementById("username-input");
+const passwordInput = document.getElementById("password-input");
+const signedOutControls = document.getElementById("signed-out-controls");
+const signedInControls = document.getElementById("signed-in-controls");
+const signedInAs = document.getElementById("signed-in-as");
+const portalContent = document.getElementById("portal-content");
+
+const scheduleTableBody = document.getElementById("schedule-table-body");
+const addScheduleToggle = document.getElementById("add-schedule-toggle");
+const addScheduleForm = document.getElementById("add-schedule-form");
+const addScheduleBtn = document.getElementById("add-schedule-btn");
+const cancelAddSchedule = document.getElementById("cancel-add-schedule");
+
+const announcementList = document.getElementById("announcement-list");
+const announcementInput = document.getElementById("announcement-input");
+const addAnnouncementBtn = document.getElementById("add-announcement-btn");
+
+const attendanceList = document.getElementById("attendance-list");
+const attendanceReportSection = document.getElementById("attendance-report-section");
+const attendanceReportBody = document.getElementById("attendance-report-body");
+const exportCsvBtn = document.getElementById("export-csv");
+
+const directorSummarySection = document.getElementById("director-summary-section");
+const nextCallSummaryDiv = document.getElementById("next-call-summary");
+
+/* -----------------------------
+   AUTH
+   ----------------------------- */
+signinBtn.addEventListener("click", ()=>{
+  const u = usernameInput.value.trim();
+  const p = passwordInput.value;
+  if(!USERS[u]) { alert("Unknown username"); return; }
+  if(USERS[u].password !== p){ alert("Wrong password"); return; }
+  localStorage.setItem(LS.currentUser, u);
+  usernameInput.value = ""; passwordInput.value = "";
+  updateAuthUI();
+  renderAll();
+});
+
+signoutBtn.addEventListener("click", ()=>{
+  localStorage.removeItem(LS.currentUser);
+  updateAuthUI();
+  renderAll();
+});
+
+/* -----------------------------
+   DATA
+   ----------------------------- */
+let schedule = loadJSON(LS.schedule, [
+  // example initial schedule (optional)
+  // {date:"2025-10-05", time:"6:00 PM", who:"Full Cast", details:"Acting rehearsal — Stage A"}
+]);
+let announcements = loadJSON(LS.announcements, [
+  // "Welcome to the call board."
+]);
+let attendance = loadJSON(LS.attendance, {});
+
+/* -----------------------------
+   UI / RENDER
+   ----------------------------- */
 
 function updateAuthUI(){
-  const cur=getCurrentUser();
-  const addScheduleToggle=document.getElementById("add-schedule-toggle");
-  const addScheduleForm=document.getElementById("add-schedule-form");
-  const announcementInput=document.getElementById("announcement-input");
-  const addAnnouncementBtn=document.getElementById("add-announcement-btn");
-  const attendanceReportSection=document.getElementById("attendance-report-section");
-  const directorSummary=document.getElementById("director-summary-section");
+  const cur = getCurrentUser();
 
+  // hide/show sign controls
   if(cur){
     signedOutControls.classList.add("hidden");
     signedInControls.classList.remove("hidden");
-    signedInAs.textContent=`Signed in as ${cur.name} (${cur.role})`;
+    signedInAs.textContent = `${cur.name} — ${cur.role}`;
     portalContent.classList.remove("hidden");
 
-    const canManage=isSM(cur)||isDirector(cur);
-    addScheduleToggle.classList.toggle("hidden",!canManage);
+    // role based reveals
+    const canManage = isSM(cur) || isDirector(cur);
+    addScheduleToggle.classList.toggle("hidden", !canManage);
     addScheduleForm.classList.add("hidden");
-    announcementInput.classList.toggle("hidden",!canManage);
-    addAnnouncementBtn.classList.toggle("hidden",!canManage);
-    attendanceReportSection.classList.toggle("hidden",!canManage);
-    directorSummary.classList.toggle("hidden",!isDirector(cur));
+    announcementInput.classList.toggle("hidden", !canManage);
+    addAnnouncementBtn.classList.toggle("hidden", !canManage);
+    attendanceReportSection.classList.toggle("hidden", !canManage);
+    directorSummarySection.classList.toggle("hidden", !isDirector(cur));
 
-    addScheduleToggle.onclick=()=>{addScheduleForm.classList.toggle("hidden")};
-    document.getElementById("cancel-add-schedule").onclick=()=>{addScheduleForm.classList.add("hidden")};
-    document.getElementById("add-schedule-btn").onclick=addSchedule;
-    addAnnouncementBtn.onclick=addAnnouncement;
-    document.getElementById("export-csv").onclick=exportAttendanceCSV;
+    // attach handlers (safe to re-attach)
+    addScheduleToggle.onclick = ()=> addScheduleForm.classList.toggle("hidden");
+    cancelAddSchedule.onclick = ()=> addScheduleForm.classList.add("hidden");
+    addScheduleBtn.onclick = handleAddSchedule;
+    addAnnouncementBtn.onclick = handleAddAnnouncement;
+    exportCsvBtn.onclick = handleExportCSV;
 
   } else {
     signedOutControls.classList.remove("hidden");
@@ -179,134 +388,300 @@ function updateAuthUI(){
   }
 }
 
-// --- DATA ---
-let schedule=loadJSON(LS.schedule,[]);
-let announcements=loadJSON(LS.announcements,[]);
-let attendance=loadJSON(LS.attendance,{});
-
-// --- ELEMENTS ---
-const scheduleTableBody=document.getElementById("schedule-table-body");
-const announcementList=document.getElementById("announcement-list");
-const attendanceListDiv=document.getElementById("attendance-list");
-const attendanceReportBody=document.getElementById("attendance-report-body");
-const nextCallSummaryDiv=document.getElementById("next-call-summary");
-
-// --- RENDER FUNCTIONS ---
 function renderSchedule(){
-  const cur=getCurrentUser();
-  scheduleTableBody.innerHTML="";
-  schedule.sort((a,b)=>new Date(a.date+" "+a.time)-new Date(b.date+" "+b.time));
-  schedule.forEach((s,i)=>{
-    if(cur.role==="Actor" && !s.who.toLowerCase().includes(cur.name.toLowerCase())) return;
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${s.date}</td><td>${s.time}</td><td>${s.who}</td><td>${s.details}</td>
-    <td>${(isSM(cur)||isDirector(cur))?`<button class="btn btn-warning" onclick="editSchedule(${i})">Edit</button>
-    <button class="btn btn-danger" onclick="deleteSchedule(${i})">Delete</button>`:""}</td>`;
+  const cur = getCurrentUser();
+  scheduleTableBody.innerHTML = "";
+  // sort by date/time
+  schedule.sort((a,b)=>{
+    return new Date(a.date+" "+a.time) - new Date(b.date+" "+b.time);
+  });
+
+  schedule.forEach((s,i) => {
+    // actors only see their own calls
+    if(cur && cur.role === "Actor"){
+      const nameLower = cur.name.toLowerCase();
+      if(!s.who.toLowerCase().includes(nameLower)) return;
+    }
+
+    const tr = document.createElement("tr");
+    const highlightStar = s.highlight ? " ⭐" : "";
+    tr.innerHTML = `
+      <td>${s.date}</td>
+      <td>${s.time}</td>
+      <td>${escapeHtml(s.who)}</td>
+      <td>${escapeHtml(s.details || "")}${highlightStar}</td>
+      <td></td>
+    `;
+    const actionsTd = tr.querySelector("td:last-child");
+    const curUser = getCurrentUser();
+    if(curUser && (isSM(curUser) || isDirector(curUser))){
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn btn-warning btn-sm"; editBtn.innerHTML = '<i class="fa fa-pen"></i> Edit';
+      editBtn.onclick = ()=> editSchedule(i);
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn btn-danger btn-sm"; delBtn.innerHTML = '<i class="fa fa-trash"></i> Delete';
+      delBtn.onclick = ()=> deleteSchedule(i);
+      actionsTd.appendChild(editBtn);
+      actionsTd.appendChild(delBtn);
+
+      if(isDirector(curUser)){
+        const starBtn = document.createElement("button");
+        starBtn.className = "btn btn-primary btn-sm"; starBtn.innerHTML = '⭐';
+        starBtn.onclick = ()=>{
+          schedule[i].highlight = !schedule[i].highlight;
+          saveJSON(LS.schedule, schedule);
+          renderSchedule();
+        };
+        actionsTd.appendChild(starBtn);
+      }
+    }
     scheduleTableBody.appendChild(tr);
   });
+
+  // if nothing to show
+  if(scheduleTableBody.children.length === 0){
+    scheduleTableBody.innerHTML = `<tr><td colspan="5" class="muted">No calls scheduled.</td></tr>`;
+  }
 }
 
 function renderAnnouncements(){
-  const cur=getCurrentUser();
-  announcementList.innerHTML="";
-  announcements.forEach((a,i)=>{
-    const div=document.createElement("div"); div.className="notice"; div.textContent=a;
-    if(isSM(cur)||isDirector(cur)){
-      const delBtn=document.createElement("button");
-      delBtn.textContent="Delete"; delBtn.className="btn btn-danger";
-      delBtn.onclick=()=>{announcements.splice(i,1);saveJSON(LS.announcements,announcements); renderAnnouncements();}
-      div.appendChild(delBtn);
+  const cur = getCurrentUser();
+  announcementList.innerHTML = "";
+  announcements.slice().reverse().forEach((a,iRaw)=>{
+    const idx = announcements.length - 1 - iRaw; // original index
+    const div = document.createElement("div");
+    div.className = "announcement";
+    const p = document.createElement("div"); p.textContent = a;
+    div.appendChild(p);
+
+    if(cur && (isSM(cur) || isDirector(cur))){
+      const controls = document.createElement("div"); controls.style.marginTop="8px"; controls.style.display="flex"; controls.style.gap="8px";
+      const editBtn = document.createElement("button"); editBtn.className="btn btn-warning btn-sm"; editBtn.innerHTML='<i class="fa fa-pen"></i> Edit';
+      editBtn.onclick = ()=>{
+        const t = prompt("Edit announcement:", announcements[idx]);
+        if(t !== null){ announcements[idx] = t.trim(); saveJSON(LS.announcements, announcements); renderAnnouncements(); }
+      };
+      const delBtn = document.createElement("button"); delBtn.className="btn btn-danger btn-sm"; delBtn.innerHTML='<i class="fa fa-trash"></i> Delete';
+      delBtn.onclick = ()=> { if(confirm("Delete announcement?")) { announcements.splice(idx,1); saveJSON(LS.announcements, announcements); renderAnnouncements(); } };
+      controls.appendChild(editBtn); controls.appendChild(delBtn);
+      div.appendChild(controls);
     }
+
     announcementList.appendChild(div);
   });
+
+  if(announcements.length === 0){
+    announcementList.innerHTML = `<div class="muted">No announcements.</div>`;
+  }
 }
 
 function renderAttendance(){
-  const cur=getCurrentUser();
-  attendanceListDiv.innerHTML="";
-  Object.keys(USERS).forEach(u=>{
-    if(cur.role==="Actor" && u!==cur.username) return;
-    const tr=document.createElement("div");
-    const status=attendance[u]?.status||"Not Marked";
-    tr.innerHTML=`${USERS[u].name} (${USERS[u].role}): <button class="btn btn-primary">${status}</button>`;
-    const btn=tr.querySelector("button");
-    btn.onclick = () => {
-      const mark = prompt("Mark as: Present, Absent, Tardy, Left Early", "Present");
-      const valid = ["Present", "Absent", "Tardy", "Left Early"];
-      if(valid.includes(mark)){
-        attendance[u] = {status: mark, time: Date.now(), by: cur.name};
-        saveJSON(LS.attendance, attendance);
-        renderAttendance(); renderAttendanceReport();
-      } else { alert("Invalid status. Use: Present, Absent, Tardy, Left Early."); }
-    };
-    attendanceListDiv.appendChild(tr);
+  const cur = getCurrentUser();
+  attendanceList.innerHTML = "";
+
+  Object.keys(USERS).forEach(username=>{
+    // actors only see themselves
+    if(cur && cur.role === "Actor" && username !== cur.username) return;
+
+    const user = USERS[username];
+    const statusObj = attendance[username];
+    const statusText = statusObj ? statusObj.status : "Not Marked";
+
+    const row = document.createElement("div");
+    row.className = "att-row";
+
+    const left = document.createElement("div"); left.className = "att-left";
+    const nameSpan = document.createElement("div"); nameSpan.innerHTML = `<strong>${user.name}</strong> <span class="role-pill">${user.role}</span>`;
+    left.appendChild(nameSpan);
+
+    const right = document.createElement("div"); right.className = "controls";
+    const badge = document.createElement("span"); badge.className = "badge " + statusClass(statusText);
+    badge.textContent = statusText;
+    right.appendChild(badge);
+
+    // buttons
+    const curUser = cur;
+    const canChange = curUser && (isSM(curUser) || isDirector(curUser) || curUser.username === username);
+    if(canChange){
+      const markBtn = document.createElement("button");
+      markBtn.className = "btn btn-ghost btn-sm";
+      markBtn.innerHTML = '<i class="fa fa-pen"></i> Mark';
+      markBtn.onclick = ()=> showMarkMenu(username);
+      right.appendChild(markBtn);
+    } else {
+      const lock = document.createElement("span"); lock.className="muted"; lock.style.fontSize="0.85rem"; lock.textContent="—";
+      right.appendChild(lock);
+    }
+
+    row.appendChild(left); row.appendChild(right);
+    attendanceList.appendChild(row);
   });
+
+  if(attendanceList.children.length === 0){
+    attendanceList.innerHTML = `<div class="muted">No attendance rows to show.</div>`;
+  }
 }
 
 function renderAttendanceReport(){
-  attendanceReportBody.innerHTML="";
-  Object.keys(attendance).forEach(u=>{
-    const a=attendance[u];
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${USERS[u].name}</td><td>${USERS[u].role}</td><td>${a.status}</td><td>${formatTime(a.time)}</td><td>${a.by}</td>`;
+  attendanceReportBody.innerHTML = "";
+  Object.keys(USERS).forEach(username=>{
+    const a = attendance[username];
+    if(!a) return;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${USERS[username].name}</td><td>${USERS[username].role}</td><td>${a.status}</td><td>${formatTime(a.time)}</td><td>${a.by}</td>`;
     attendanceReportBody.appendChild(tr);
   });
+  if(attendanceReportBody.children.length === 0){
+    attendanceReportBody.innerHTML = `<tr><td colspan="5" class="muted">No attendance records yet.</td></tr>`;
+  }
 }
 
 function renderDirectorSummary(){
-  const cur=getCurrentUser();
-  if(!isDirector(cur)) return;
-  nextCallSummaryDiv.innerHTML="";
-  const upcoming=schedule.filter(s=>new Date(s.date+" "+s.time)>new Date()).slice(0,5);
+  const cur = getCurrentUser();
+  if(!isDirector(cur)){ nextCallSummaryDiv.innerHTML=""; return; }
+  nextCallSummaryDiv.innerHTML = "";
+  const upcoming = schedule.filter(s => new Date(s.date + " " + s.time) > new Date()).slice(0,8);
+  if(upcoming.length === 0){ nextCallSummaryDiv.innerHTML = "<div class='muted'>No upcoming calls.</div>"; return; }
   upcoming.forEach(s=>{
-    const div=document.createElement("div"); div.className="highlight";
-    div.textContent=`${s.date} ${s.time}: ${s.who} - ${s.details}`;
-    nextCallSummaryDiv.appendChild(div);
+    const el = document.createElement("div"); el.className="highlight";
+    el.textContent = `${s.date} ${s.time} — ${s.who} — ${s.details || ""}`;
+    nextCallSummaryDiv.appendChild(el);
   });
 }
 
-function renderAll(){renderSchedule(); renderAnnouncements(); renderAttendance(); renderAttendanceReport(); renderDirectorSummary();}
-
-// --- HANDLERS ---
-function addSchedule(){
-  const d=document.getElementById("new-date").value;
-  const t=document.getElementById("new-time").value;
-  const w=document.getElementById("new-who").value;
-  const det=document.getElementById("new-details").value;
-  if(d && t && w){schedule.push({date:d,time:t,who:w,details:det}); saveJSON(LS.schedule,schedule);
-    document.getElementById("add-schedule-form").classList.add("hidden"); renderSchedule(); renderDirectorSummary();}
-  else alert("Fill all fields");
+function renderAll(){
+  updateAuthUI();
+  renderSchedule();
+  renderAnnouncements();
+  renderAttendance();
+  renderAttendanceReport();
+  renderDirectorSummary();
 }
 
-function addAnnouncement(){
-  const txt=document.getElementById("announcement-input").value.trim();
-  if(txt){announcements.push(txt); saveJSON(LS.announcements,announcements);
-    document.getElementById("announcement-input").value=""; renderAnnouncements();}
+/* -----------------------------
+   Utilities & Handlers
+   ----------------------------- */
+
+function statusClass(status){
+  if(!status) return "";
+  status = status.toLowerCase();
+  if(status === "present") return "present";
+  if(status === "absent") return "absent";
+  if(status === "tardy") return "tardy";
+  if(status === "left early") return "left";
+  return "";
 }
 
-window.editSchedule=(i)=>{
-  const s=schedule[i];
-  const newWho=prompt("Who?",s.who); const newDate=prompt("Date?",s.date);
-  const newTime=prompt("Time?",s.time); const newDet=prompt("Details?",s.details);
-  if(newWho && newDate && newTime){schedule[i]={date:newDate,time:newTime,who:newWho,details:newDet};
-    saveJSON(LS.schedule,schedule); renderSchedule(); renderDirectorSummary();}
+function showMarkMenu(targetUsername){
+  // simple prompt-based menu for now
+  const cur = getCurrentUser();
+  if(!cur) { alert("Please sign in"); return; }
+
+  // security: only allow if director/SM or same user
+  if(!(isSM(cur) || isDirector(cur) || cur.username === targetUsername)) { alert("Not allowed"); return; }
+
+  const choice = prompt("Mark as (Present, Absent, Tardy, Left Early):", "Present");
+  if(!choice) return;
+  const allowed = ["Present","Absent","Tardy","Left Early"];
+  if(!allowed.includes(choice)){
+    alert("Invalid choice. Use: Present, Absent, Tardy, Left Early");
+    return;
+  }
+  attendance[targetUsername] = { status: choice, time: Date.now(), by: cur.name };
+  saveJSON(LS.attendance, attendance);
+  renderAttendance();
+  renderAttendanceReport();
 }
 
-window.deleteSchedule=(i)=>{if(confirm("Delete this schedule?")){schedule.splice(i,1); saveJSON(LS.schedule,schedule); renderSchedule(); renderDirectorSummary();}}
+/* SCHEDULE HANDLERS */
+function handleAddSchedule(){
+  const d = document.getElementById("new-date").value.trim();
+  const t = document.getElementById("new-time").value.trim();
+  const w = document.getElementById("new-who").value.trim();
+  const det = document.getElementById("new-details").value.trim();
+  if(!d || !t || !w){ alert("Please fill date, time, and who"); return; }
+  schedule.push({ date:d, time:t, who:w, details:det, highlight:false });
+  saveJSON(LS.schedule, schedule);
+  document.getElementById("new-date").value=""; document.getElementById("new-time").value="";
+  document.getElementById("new-who").value=""; document.getElementById("new-details").value="";
+  document.getElementById("add-schedule-form").classList.add("hidden");
+  renderSchedule();
+  renderDirectorSummary();
+}
 
-function exportAttendanceCSV(){
-  let csv="Name,Role,Status,Time,Marked By\n";
-  Object.keys(attendance).forEach(u=>{
-    const a=attendance[u];
-    csv+=`${USERS[u].name},${USERS[u].role},${a.status},${formatTime(a.time)},${a.by}\n`;
+function editSchedule(i){
+  const s = schedule[i];
+  const newDate = prompt("Date (YYYY-MM-DD):", s.date);
+  if(newDate === null) return;
+  const newTime = prompt("Time:", s.time);
+  if(newTime === null) return;
+  const newWho = prompt("Who:", s.who);
+  if(newWho === null) return;
+  const newDetails = prompt("Details:", s.details || "");
+  schedule[i] = { date: newDate.trim(), time: newTime.trim(), who: newWho.trim(), details: newDetails ? newDetails.trim() : "" , highlight: s.highlight || false };
+  saveJSON(LS.schedule, schedule);
+  renderSchedule();
+  renderDirectorSummary();
+}
+
+function deleteSchedule(i){
+  if(!confirm("Delete this call?")) return;
+  schedule.splice(i,1);
+  saveJSON(LS.schedule, schedule);
+  renderSchedule();
+  renderDirectorSummary();
+}
+
+/* ANNOUNCEMENTS */
+function handleAddAnnouncement(){
+  const txt = document.getElementById("announcement-input").value.trim();
+  if(!txt) return;
+  announcements.push(txt);
+  saveJSON(LS.announcements, announcements);
+  document.getElementById("announcement-input").value = "";
+  renderAnnouncements();
+}
+
+/* CSV EXPORT: attendance + schedule + announcements */
+function handleExportCSV(){
+  const cur = getCurrentUser();
+  if(!cur || !(isSM(cur) || isDirector(cur))){ alert("Export allowed for SMs and Directors only."); return; }
+
+  let csv = "Attendance Report\nName,Role,Status,Time,Marked By\n";
+  Object.keys(USERS).forEach(u=>{
+    const a = attendance[u];
+    if(a){
+      csv += `"${USERS[u].name}","${USERS[u].role}","${a.status}","${formatTime(a.time)}","${a.by}"\n`;
+    }
   });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a"); a.href=url; a.download="attendance.csv"; a.click(); URL.revokeObjectURL(url);
+  csv += "\nSchedule\nDate,Time,Who,Details,Highlighted\n";
+  schedule.forEach(s=>{
+    csv += `"${s.date}","${s.time}","${s.who}","${s.details || ''}","${s.highlight ? 'YES' : 'NO'}"\n`;
+  });
+  csv += "\nAnnouncements\n";
+  announcements.forEach(a=>{
+    csv += `"${a}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "theater_report.csv"; a.click();
+  URL.revokeObjectURL(url);
 }
 
-// INITIALIZE
-updateAuthUI(); renderAll();
+/* -----------------------------
+   Helpers
+   ----------------------------- */
+function escapeHtml(str){
+  if(!str) return "";
+  return str.replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+}
+
+/* initialize UI */
+updateAuthUI();
+renderAll();
+
 </script>
 
 </body>
