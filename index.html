@@ -86,13 +86,16 @@ td{background:#222;color:#f5f5f5;}
 <span class="close-btn" id="attendanceClose">&times;</span>
 <h3>Mark Attendance</h3>
 <select id="attendanceSelect">
-<option>Present</option>
-<option>Absent</option>
-<option>Tardy</option>
-<option>Left Early</option>
-<option>Sick</option>
-<option>Football</option>
-<option>Other</option>
+  <option>Present</option>
+  <option>Absent</option>
+  <option>Tardy</option>
+  <option>Left Early</option>
+</select>
+<select id="absenceReason" class="hidden">
+  <option>Football</option>
+  <option>Band</option>
+  <option>Sick</option>
+  <option>Other</option>
 </select>
 <button id="attendanceSaveBtn">Save</button>
 </div>
@@ -144,6 +147,7 @@ const loginMsg=document.getElementById("loginMsg");
 const attendanceModal=document.getElementById("attendanceModal");
 const attendanceClose=document.getElementById("attendanceClose");
 const attendanceSelect=document.getElementById("attendanceSelect");
+const absenceReason=document.getElementById("absenceReason");
 const attendanceSaveBtn=document.getElementById("attendanceSaveBtn");
 const confirmModal=document.getElementById("confirmModal");
 const confirmClose=document.getElementById("confirmClose");
@@ -219,6 +223,7 @@ document.getElementById("addCallBtn").onclick=()=>{
   if(d&&t&&w&&det){schedule.push({date:d,time:t,who:w,details:det});document.getElementById("callDate").value="";document.getElementById("callTime").value="";document.getElementById("callWho").value="";document.getElementById("callDetails").value="";save();}
 };
 
+// --- Attendance ---
 function renderAttendance(){
   const list=document.getElementById("attendanceList");
   list.innerHTML="";
@@ -227,10 +232,14 @@ function renderAttendance(){
       if(currentUser.role==="Actor" && u!==currentUser.id) return;
       const div=document.createElement("div");
       div.className="entry";
-      div.textContent=`${USERS[u].name} - ${attendance[u]?.status||"Not Marked"}`;
+      let text=`${USERS[u].name} - ${attendance[u]?.status || "Not Marked"}`;
+      if(attendance[u]?.status==="Absent" && attendance[u]?.reason){
+        text+=` (${attendance[u].reason})`;
+      }
+      div.textContent=text;
       const btn=document.createElement("button");
       btn.textContent="Mark";
-      btn.onclick=()=>{attendanceTarget=u;attendanceSelect.value=attendance[u]?.status||"Present";attendanceModal.style.display="flex";}
+      btn.onclick=()=>{attendanceTarget=u;attendanceSelect.value=attendance[u]?.status||"Present";absenceReason.value=attendance[u]?.reason||"Football";absenceReason.classList.toggle("hidden",attendanceSelect.value!=="Absent");attendanceModal.style.display="flex";}
       div.appendChild(btn);
       list.appendChild(div);
     }
@@ -244,36 +253,43 @@ function renderAttendance(){
   } else { report.classList.add("hidden"); exportBtn.classList.add("hidden"); }
 }
 
+attendanceSelect.onchange = ()=>{
+  absenceReason.classList.toggle("hidden",attendanceSelect.value!=="Absent");
+};
+
 attendanceClose.onclick=()=>attendanceModal.style.display="none";
 attendanceSaveBtn.onclick=()=>{
-  attendance[attendanceTarget]={status:attendanceSelect.value,by:currentUser.name,time:Date.now()};
+  const reason=attendanceSelect.value==="Absent"?absenceReason.value:"";
+  attendance[attendanceTarget]={status:attendanceSelect.value,reason:reason,by:currentUser.name,time:Date.now()};
   attendanceModal.style.display="none";
   save();
 };
 
+// --- CSV Export ---
 document.getElementById("exportAttendanceBtn").onclick=()=>{
-  let csv="Name,Role,Status,Time,Marked By\n";
+  let csv="Name,Role,Status,Reason,Time,Marked By\n";
   Object.keys(attendance).forEach(u=>{
     const a=attendance[u];
     const d=new Date(a.time).toLocaleString();
-    csv+=`${USERS[u].name},${USERS[u].role},${a.status},${d},${a.by}\n`;
+    csv+=`${USERS[u].name},${USERS[u].role},${a.status},${a.reason||""},${d},${a.by}\n`;
   });
   const blob=new Blob([csv],{type:"text/csv"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download="attendance.csv"; a.click(); URL.revokeObjectURL(url);
 };
 
+// --- Attendance Report ---
 function renderAttendanceReport(){
   const report=document.getElementById("attendanceReport");
   report.innerHTML="<h3>Attendance Report</h3>";
   const table=document.createElement("table");
   const head=document.createElement("tr");
-  ["Name","Role","Status","Time","Marked By"].forEach(h=>{const th=document.createElement("th"); th.textContent=h; head.appendChild(th);});
+  ["Name","Role","Status","Reason","Time","Marked By"].forEach(h=>{const th=document.createElement("th"); th.textContent=h; head.appendChild(th);});
   table.appendChild(head);
   Object.keys(attendance).forEach(u=>{
     const a=attendance[u];
     const tr=document.createElement("tr");
-    [USERS[u].name,USERS[u].role,a.status,new Date(a.time).toLocaleString(),a.by].forEach(txt=>{const td=document.createElement("td"); td.textContent=txt; tr.appendChild(td);});
+    [USERS[u].name,USERS[u].role,a.status,a.reason||"",new Date(a.time).toLocaleString(),a.by].forEach(txt=>{const td=document.createElement("td"); td.textContent=txt; tr.appendChild(td);});
     table.appendChild(tr);
   });
   report.appendChild(table);
@@ -295,7 +311,7 @@ function renderDirectorSummary(){
 // --- Force Mark ---
 document.getElementById("forceMarkBtn").onclick=()=>{
   Object.keys(USERS).forEach(u=>{
-    if(USERS[u].role==="Actor" && !attendance[u]) attendance[u]={status:"Present",by:currentUser.name,time:Date.now()};
+    if(USERS[u].role==="Actor" && !attendance[u]) attendance[u]={status:"Present",reason:"",by:currentUser.name,time:Date.now()};
   });
   save();
 };
@@ -320,6 +336,7 @@ function save(){
   renderAll();
 }
 function renderAll(){ renderAnnouncements(); renderSchedule(); renderAttendance(); renderDirectorSummary(); }
+
 </script>
 </body>
 </html>
