@@ -3,15 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PG Theater Call Board — Firebase Live</title>
-
-<!-- Google font -->
+<title>PG Theater Call Board — Live</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
 <style>
 :root{
   --bg:#0b0b0b; --card:#121212; --gold:#FFD166; --gold-dark:#e0b64f; --muted:#9b9b9b; --danger:#e74c3c; --success:#2ecc71;
-  --radius:12px; --shadow:0 8px 24px rgba(0,0,0,0.6); --maxw:1100px;
+  --radius:12px; --shadow:0 8px 24px rgba(0,0,0,0.6); --maxw:1200px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#040404);color:var(--gold);font-family:Inter,system-ui,Roboto,Arial;-webkit-font-smoothing:antialiased}
@@ -38,15 +35,15 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
 .table th,.table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
 .table th{font-weight:700;color:var(--gold)}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;z-index:200}
-.modal-card{width:420px;max-width:92%;background:linear-gradient(180deg,var(--card),#0f0f0f);padding:18px;border-radius:12px;border:1px solid rgba(255,215,102,0.06);box-shadow:0 12px 40px rgba(0,0,0,0.7)}
+.modal-card{width:520px;max-width:94%;background:linear-gradient(180deg,var(--card),#0f0f0f);padding:18px;border-radius:12px;border:1px solid rgba(255,215,102,0.06);box-shadow:0 12px 40px rgba(0,0,0,0.7)}
 .fade-in{animation:fadeIn .22s ease-in}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
 .badge{padding:6px 8px;border-radius:8px;font-weight:700}
 .present{background:rgba(46,204,113,0.12);color:var(--success)}
 .absent{background:rgba(231,76,60,0.08);color:var(--danger)}
 .tardy{background:rgba(255,215,102,0.08);color:var(--gold)}
 .left{background:rgba(200,200,200,0.06);color:#ccc}
+.small-muted{font-size:0.85rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -75,16 +72,22 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
 </div>
 
 <div class="container">
+
+  <!-- LEFT -->
   <div>
+    <!-- Director summary -->
     <div id="directorSummaryCard" class="card hidden fade-in">
       <h2>Next Calls (Directors)</h2>
       <div id="nextCallsList" class="small"></div>
     </div>
 
+    <!-- Schedule -->
     <div class="card fade-in">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <h2>Schedule</h2>
-        <div><button id="toggleScheduleForm" class="btn btn-primary hidden">+ New Call</button></div>
+        <div>
+          <button id="toggleScheduleForm" class="btn btn-primary hidden">+ New Call</button>
+        </div>
       </div>
 
       <div id="scheduleForm" class="hidden" style="margin-top:12px">
@@ -104,6 +107,7 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
       <div id="scheduleList" style="margin-top:12px"></div>
     </div>
 
+    <!-- Announcements -->
     <div class="card fade-in">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <h2>Announcements</h2>
@@ -122,7 +126,9 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
     </div>
   </div>
 
+  <!-- RIGHT -->
   <div>
+    <!-- Attendance -->
     <div class="card fade-in">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <h2>Attendance</h2>
@@ -133,17 +139,19 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
       <div id="attendanceReport" class="hidden" style="margin-top:12px"></div>
     </div>
 
+    <!-- Director controls -->
     <div id="directorControls" class="card hidden fade-in">
       <h2>Director Tools</h2>
       <div style="display:flex;gap:8px;flex-direction:column">
         <button id="forceMarkBtn" class="btn btn-primary">Force Mark All Present</button>
-        <div class="small" style="margin-top:8px">Force-mark sets unmarked actors present and records you as the marker.</div>
+        <div class="small" style="margin-top:8px">Force-mark sets unmarked actors Present with your name.</div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Attendance modal -->
+<!-- Attendance Modal -->
 <div id="attendanceModal" class="modal">
   <div class="modal-card">
     <h3>Mark Attendance</h3>
@@ -158,7 +166,7 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
     </div>
     <div id="absenceLauncher" style="margin-top:10px" class="hidden">
       <button id="openAbsenceModalBtn" class="btn btn-ghost">Choose absence reason</button>
-      <div class="small" style="margin-top:6px;color:var(--muted)">If Absent, choose a reason next.</div>
+      <div class="small" style="margin-top:6px;color:var(--muted)">If Absent, click to select reason (Football/Band/Sick/Other).</div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
       <button id="attendanceCancelBtn" class="btn btn-ghost">Cancel</button>
@@ -198,45 +206,29 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
   </div>
 </div>
 
-<!-- Firebase & App logic -->
-<script type="module">
+<!-- Firebase SDKs (compat style via CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+<script>
 /* ============================
-   IMPORTANT: Replace firebaseConfig below with YOUR Firebase web app config.
-   Get it from Firebase Console -> Project Settings -> SDK setup and configuration.
-   Example:
-   const firebaseConfig = {
+   Firebase config — using your provided values (storageBucket corrected)
+   Replace with your own if you change projects.
+   ============================ */
+const firebaseConfig = {
   apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
   authDomain: "pg-theater-call-board.firebaseapp.com",
   projectId: "pg-theater-call-board",
-  storageBucket: "pg-theater-call-board.firebasestorage.app",
+  storageBucket: "pg-theater-call-board.appspot.com",
   messagingSenderId: "850857757575",
   appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
   measurementId: "G-ELWLH31ZCJ"
-   };
-   ============================ */
-const firebaseConfig = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME"
 };
 
-/* ---------------- Firebase imports ---------------- */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import {
-  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs,
-  onSnapshot, updateDoc, deleteDoc, query, orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 /* ============================
-   Local USERS (keeps your finished accounts)
-   - We validate login against this map (client-side)
-   - Firebase security rules should later be configured to restrict writes appropriately
+   Local USERS (your provided accounts — kept client side as requested)
    ============================ */
 const USERS = {
   lnewton:{password:"?2@2yzz~PVJf", name:"L. Newton", role:"Director"},
@@ -259,88 +251,78 @@ const USERS = {
 };
 
 /* ============================
-   State
+   State & DOM helpers
    ============================ */
 let currentUser = null;
 let attendanceTarget = null;
 let confirmCallback = null;
+let unsubAnnouncements = null, unsubSchedule = null, unsubAttendance = null;
 
-/* ============================
-   DOM helpers
-   ============================ */
 const q = id => document.getElementById(id);
-function show(el){ el.style.display = "flex"; }
-function hide(el){ el.style.display = "none"; }
 function isSMorDirector(){ return currentUser && (currentUser.role === "Stage Manager" || currentUser.role === "Director"); }
 function isDirector(){ return currentUser && currentUser.role === "Director"; }
 function formatDateTime(ts){ try{ return new Date(ts).toLocaleString(); } catch(e){ return ""; } }
 
 /* ============================
-   Firestore collections
-   - announcements (documents)
-   - schedule (documents)
-   - attendance (one doc per username)
+   Realtime listeners start/stop
    ============================ */
-const announcementsCol = collection(db, "announcements");
-const scheduleCol = collection(db, "schedule");
-const attendanceCol = collection(db, "attendance"); // we'll store docs named by username
+function startRealtime(){
+  // announcements
+  unsubAnnouncements = db.collection("announcements").orderBy("time","desc")
+    .onSnapshot(snap => {
+      const arr = [];
+      snap.forEach(d => arr.push({id:d.id, ...d.data()}));
+      renderAnnouncements(arr);
+    });
 
-/* ============================
-   Real-time listeners
-   ============================ */
-let unsubAnnouncements = null, unsubSchedule = null, unsubAttendance = null;
+  // schedule
+  unsubSchedule = db.collection("schedule").orderBy("date").orderBy("time")
+    .onSnapshot(snap => {
+      const arr = [];
+      snap.forEach(d => arr.push({id:d.id, ...d.data()}));
+      renderSchedule(arr);
+    });
 
-function startRealtimeListeners(){
-  // announcements ordered by time desc
-  const qAnn = query(announcementsCol, orderBy("time", "desc"));
-  unsubAnnouncements = onSnapshot(qAnn, snap => {
-    const arr = [];
-    snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
-    renderAnnouncements(arr);
-  });
+  // attendance (all docs)
+  unsubAttendance = db.collection("attendance")
+    .onSnapshot(snap => {
+      const map = {};
+      snap.forEach(d => map[d.id] = d.data());
+      renderAttendance(map);
+    });
+}
 
-  const qSched = query(scheduleCol, orderBy("date"), orderBy("time"));
-  unsubSchedule = onSnapshot(qSched, snap => {
-    const arr = [];
-    snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
-    renderSchedule(arr);
-  });
-
-  // attendance: we read everything once and then watch
-  unsubAttendance = onSnapshot(attendanceCol, snap => {
-    const map = {};
-    snap.forEach(d => { map[d.id] = d.data(); });
-    renderAttendance(map);
-  });
+function stopRealtime(){
+  if(unsubAnnouncements) unsubAnnouncements();
+  if(unsubSchedule) unsubSchedule();
+  if(unsubAttendance) unsubAttendance();
+  unsubAnnouncements = unsubSchedule = unsubAttendance = null;
 }
 
 /* ============================
-   Auth (local user map)
+   Auth (local users)
    ============================ */
 q("signinBtn").addEventListener("click", ()=>{
   const username = q("usernameInput").value.trim();
   const password = q("passwordInput").value;
   if(!username || !password){ alert("Enter credentials"); return; }
   const u = USERS[username];
-  if(!u || u.password !== password){ alert("Invalid username or password"); return; }
+  if(!u || u.password !== password){ alert("Invalid username/password"); return; }
   currentUser = { username, name: u.name, role: u.role };
-  // show signed-in UI
+  // UI switch
   q("signed-out-controls").classList.add("hidden");
   q("signed-in-controls").classList.remove("hidden");
   q("signedInAs").textContent = `${currentUser.name} — ${currentUser.role}`;
   q("signedInAs").style.color = "var(--muted)";
-  // start realtime listeners
-  startRealtimeListeners();
-  // show role UI
+  // show role-based UI
   attachRoleUI();
   populateCallWho();
+  // start realtime reads
+  startRealtime();
 });
 
 q("signoutBtn").addEventListener("click", ()=>{
-  // unsubscribe real-time listeners
-  unsubAnnouncements && unsubAnnouncements();
-  unsubSchedule && unsubSchedule();
-  unsubAttendance && unsubAttendance();
+  stopRealtime();
   currentUser = null;
   q("signed-out-controls").classList.remove("hidden");
   q("signed-in-controls").classList.add("hidden");
@@ -349,7 +331,7 @@ q("signoutBtn").addEventListener("click", ()=>{
 });
 
 /* ============================
-   Role UI attachments
+   Role UI attachments & helpers
    ============================ */
 function attachRoleUI(){
   if(!currentUser) return;
@@ -372,23 +354,21 @@ function attachRoleUI(){
 }
 
 /* ============================
-   Populate actors into callWho select
+   Populate actor list for multi-select
    ============================ */
 function populateCallWho(){
   const sel = q("callWho");
   sel.innerHTML = "";
   Object.keys(USERS).forEach(u=>{
     if(USERS[u].role === "Actor"){
-      const opt = document.createElement("option");
-      opt.value = u;
-      opt.textContent = USERS[u].name;
+      const opt = document.createElement("option"); opt.value = u; opt.textContent = USERS[u].name;
       sel.appendChild(opt);
     }
   });
 }
 
 /* ============================
-   Schedule create/delete (Firestore)
+   Schedule: add / delete
    ============================ */
 q("toggleScheduleForm").addEventListener("click", ()=> q("scheduleForm").classList.toggle("hidden"));
 q("cancelCallBtn").addEventListener("click", ()=> q("scheduleForm").classList.add("hidden"));
@@ -399,15 +379,14 @@ q("addCallBtn").addEventListener("click", async ()=>{
   const details = q("callDetails").value.trim();
   const whoSelect = q("callWho");
   const selected = Array.from(whoSelect.selectedOptions).map(o=>o.value);
-  if(!date || !time || selected.length === 0){ alert("Please fill date, time and select at least one actor."); return; }
-  // create in Firestore
-  await addDoc(scheduleCol, { date, time, who: selected, details, createdBy: currentUser.username, createdAt: Date.now() });
+  if(!date || !time || selected.length === 0){ alert("Please fill date/time and select at least one actor."); return; }
+  await db.collection("schedule").add({ date, time, who: selected, details, createdBy: currentUser.username, createdAt: Date.now() });
   q("callDate").value = ""; q("callTime").value = ""; q("callDetails").value = ""; whoSelect.selectedIndex = -1;
   q("scheduleForm").classList.add("hidden");
 });
 
 /* ============================
-   Announcements create/delete
+   Announcements: add / delete
    ============================ */
 q("toggleAnnForm").addEventListener("click", ()=> q("annForm").classList.toggle("hidden"));
 q("cancelAnnBtn").addEventListener("click", ()=> q("annForm").classList.add("hidden"));
@@ -415,27 +394,23 @@ q("cancelAnnBtn").addEventListener("click", ()=> q("annForm").classList.add("hid
 q("addAnnouncementBtn").addEventListener("click", async ()=>{
   const text = q("announcementText").value.trim();
   if(!text){ alert("Enter announcement"); return; }
-  await addDoc(announcementsCol, { text, by: currentUser.username, time: Date.now() });
+  await db.collection("announcements").add({ text, by: currentUser.username, time: Date.now() });
   q("announcementText").value = ""; q("annForm").classList.add("hidden");
 });
 
 /* ============================
-   Attendance flow:
-   - clicking Mark opens attendance modal
-   - selecting Absent opens absence modal
-   - saving writes into Firestore under doc id = username
+   Attendance flow
    ============================ */
 q("attendanceSaveBtn").addEventListener("click", async ()=>{
-  if(!attendanceTarget){ alert("No target selected"); return; }
+  if(!attendanceTarget){ alert("No actor selected"); return; }
   const status = q("attendanceSelect").value;
   if(status === "Absent"){
-    // open absence modal
     q("attendanceModal").style.display = "none";
     q("absenceModal").style.display = "flex";
     return;
   }
-  const docRef = doc(db, "attendance", attendanceTarget);
-  await setDoc(docRef, { status, reason: "", by: currentUser.username, time: Date.now() });
+  const docRef = db.collection("attendance").doc(attendanceTarget);
+  await docRef.set({ status, reason: "", by: currentUser.username, time: Date.now() });
   q("attendanceModal").style.display = "none";
 });
 
@@ -444,29 +419,35 @@ q("attendanceCancelBtn").addEventListener("click", ()=> q("attendanceModal").sty
 q("absenceSaveBtn").addEventListener("click", async ()=>{
   if(!attendanceTarget){ q("absenceModal").style.display = "none"; return; }
   const reason = q("absenceReasonSelect").value || "Other";
-  const docRef = doc(db, "attendance", attendanceTarget);
-  await setDoc(docRef, { status: "Absent", reason, by: currentUser.username, time: Date.now() });
+  const docRef = db.collection("attendance").doc(attendanceTarget);
+  await docRef.set({ status: "Absent", reason, by: currentUser.username, time: Date.now() });
   q("absenceModal").style.display = "none";
 });
 
 q("absenceCancelBtn").addEventListener("click", ()=>{
   q("absenceModal").style.display = "none";
-  // reopen attendance modal to cancel/choose something else
   q("attendanceSelect").value = "Present";
   q("attendanceModal").style.display = "flex";
 });
 
+/* open absence launcher inside attendance modal */
+document.addEventListener("click", (e)=>{
+  if(e.target && e.target.id === "openAbsenceModalBtn"){
+    q("absenceModal").style.display = "flex";
+    q("attendanceModal").style.display = "none";
+  }
+});
+
 /* ============================
-   Export CSV (reads Firestore snapshot state via SDK)
+   CSV export
    ============================ */
 q("exportCsvBtn").addEventListener("click", async ()=>{
-  // get all attendance docs
-  const snap = await getDocs(attendanceCol);
+  const snap = await db.collection("attendance").get();
   let csv = "Name,Role,Status,Reason,Time,Marked By\n";
-  snap.forEach(d=>{
-    const data = d.data();
+  snap.forEach(d => {
+    const a = d.data();
     const uname = d.id;
-    csv += `"${USERS[uname]?.name || uname}","${USERS[uname]?.role || ''}","${data.status || ''}","${data.reason || ''}","${formatDateTime(data.time) || ''}","${data.by || ''}"\n`;
+    csv += `"${USERS[uname]?.name || uname}","${USERS[uname]?.role || ''}","${a.status || ''}","${a.reason || ''}","${formatDateTime(a.time) || ''}","${a.by || ''}"\n`;
   });
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -474,20 +455,18 @@ q("exportCsvBtn").addEventListener("click", async ()=>{
 });
 
 /* ============================
-   Force Mark (director)
+   Force Mark (Director)
    ============================ */
 q("forceMarkBtn").addEventListener("click", async ()=>{
   if(!isDirector()) return alert("Directors only");
   if(!confirm("Mark all unmarked actors Present?")) return;
-  // get existing attendance docs
-  const snap = await getDocs(attendanceCol);
+  const snap = await db.collection("attendance").get();
   const presentSet = new Set();
   snap.forEach(d => presentSet.add(d.id));
   const ops = [];
   Object.keys(USERS).forEach(u=>{
     if(USERS[u].role === "Actor" && !presentSet.has(u)){
-      const docRef = doc(db, "attendance", u);
-      ops.push(setDoc(docRef, { status:"Present", reason:"", by: currentUser.username, time: Date.now() }));
+      ops.push(db.collection("attendance").doc(u).set({ status:"Present", reason:"", by: currentUser.username, time: Date.now() }));
     }
   });
   await Promise.all(ops);
@@ -495,7 +474,7 @@ q("forceMarkBtn").addEventListener("click", async ()=>{
 });
 
 /* ============================
-   Confirm modal helpers
+   Confirm modal
    ============================ */
 function showConfirm(title, text, callback){
   q("confirmTitle").textContent = title;
@@ -503,28 +482,25 @@ function showConfirm(title, text, callback){
   q("confirmModal").style.display = "flex";
   confirmCallback = callback;
 }
-q("confirmNoBtn").addEventListener("click", ()=>{ q("confirmModal").style.display = "none"; confirmCallback = null; });
-q("confirmYesBtn").addEventListener("click", ()=>{
-  q("confirmModal").style.display = "none";
-  if(typeof confirmCallback === "function") confirmCallback();
-  confirmCallback = null;
-});
+q("confirmNoBtn").addEventListener("click", ()=> { q("confirmModal").style.display = "none"; confirmCallback = null; });
+q("confirmYesBtn").addEventListener("click", ()=> { q("confirmModal").style.display = "none"; if(typeof confirmCallback === "function") confirmCallback(); confirmCallback = null; });
 
 /* ============================
-   Render helpers (update DOM from Firestore snapshots)
+   Render functions (called from onSnapshot)
    ============================ */
 function renderAnnouncements(items){
-  const container = q("announcementsList"); container.innerHTML = "";
+  const container = q("announcementsList");
+  container.innerHTML = "";
   if(!items || items.length === 0){ container.innerHTML = `<div class="small">No announcements.</div>`; return; }
-  items.forEach((a) => {
+  items.forEach(a => {
     const row = document.createElement("div"); row.className = "entry-row";
     const left = document.createElement("div");
-    left.innerHTML = `<div style="font-weight:700">${a.text}</div><div class="small">Posted ${formatDateTime(a.time)} by ${a.by}</div>`;
+    left.innerHTML = `<div style="font-weight:700">${a.text}</div><div class="small-muted">Posted ${formatDateTime(a.time)} by ${USERS[a.by]?.name || a.by}</div>`;
     const right = document.createElement("div");
     if(isSMorDirector()){
       const del = document.createElement("button"); del.className = "btn btn-danger btn-sm"; del.textContent = "Delete";
       del.addEventListener("click", ()=> showConfirm("Delete Announcement","Delete this announcement?", async ()=>{
-        await deleteDoc(doc(db, "announcements", a.id));
+        await db.collection("announcements").doc(a.id).delete();
       }));
       right.appendChild(del);
     }
@@ -536,44 +512,39 @@ function renderAnnouncements(items){
 function renderSchedule(items){
   const container = q("scheduleList"); container.innerHTML = "";
   if(!items || items.length === 0){ container.innerHTML = `<div class="small">No calls scheduled.</div>`; return; }
-  // sort by date/time
-  items.sort((a,b) => new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time));
+  // sort
+  items.sort((A,B)=> new Date(A.date + " " + A.time) - new Date(B.date + " " + B.time));
   items.forEach(s => {
-    // actor sees only if included
     if(currentUser.role === "Actor" && !s.who.includes(currentUser.username)) return;
     const row = document.createElement("div"); row.className = "entry-row";
-    const left = document.createElement("div");
-    left.innerHTML = `<div style="font-weight:700">${s.date} ${s.time}</div><div class="small">${s.details}</div>`;
-    const whoNames = s.who.map(u => USERS[u].name).join(", ");
-    const right = document.createElement("div"); right.style.textAlign = "right";
-    right.innerHTML = `<div class="small">Called: ${whoNames}</div>`;
+    const left = document.createElement("div"); left.innerHTML = `<div style="font-weight:700">${s.date} ${s.time}</div><div class="small-muted">${s.details}</div>`;
+    const whoNames = s.who.map(u => USERS[u]?.name || u).join(", ");
+    const right = document.createElement("div"); right.innerHTML = `<div class="small-muted">Called: ${whoNames}</div>`;
     if(isSMorDirector()){
       const del = document.createElement("button"); del.className = "btn btn-danger btn-sm"; del.textContent = "Delete";
-      del.addEventListener("click", ()=> showConfirm("Delete Call","Delete this call?", async ()=>{
-        await deleteDoc(doc(db, "schedule", s.id));
+      del.addEventListener("click", ()=> showConfirm("Delete Call","Delete this call?", async ()=> {
+        await db.collection("schedule").doc(s.id).delete();
       }));
       right.appendChild(del);
     }
     row.appendChild(left); row.appendChild(right);
     container.appendChild(row);
   });
-  // update director summary
   renderDirectorSummaryFromSchedule(items);
 }
 
-function renderAttendance(snapshotMap){
-  // snapshotMap is an object mapping username -> doc data
+function renderAttendance(map){
   const container = q("attendanceList"); container.innerHTML = "";
-  Object.keys(USERS).forEach(u=>{
+  Object.keys(USERS).forEach(u => {
     if(USERS[u].role !== "Actor") return;
     if(currentUser.role === "Actor" && currentUser.username !== u) return;
     const row = document.createElement("div"); row.className = "entry-row";
     const left = document.createElement("div");
-    const a = snapshotMap[u];
+    const a = map[u];
     const status = a ? a.status : "Not Marked";
     const reason = a && a.reason ? ` — ${a.reason}` : "";
-    const by = a && a.by ? ` • by ${USERS[a.by]?.name || a.by}` : "";
-    left.innerHTML = `<div style="font-weight:700">${USERS[u].name}</div><div class="small">${status}${reason}${by}</div>`;
+    const byName = a && a.by ? ` • by ${USERS[a.by]?.name || a.by}` : "";
+    left.innerHTML = `<div style="font-weight:700">${USERS[u].name}</div><div class="small-muted">${status}${reason}${byName}</div>`;
     const right = document.createElement("div");
     // mark button
     const markBtn = document.createElement("button"); markBtn.className = "btn btn-ghost btn-sm"; markBtn.textContent = "Mark";
@@ -584,13 +555,12 @@ function renderAttendance(snapshotMap){
       q("attendanceModal").style.display = "flex";
     });
     right.appendChild(markBtn);
-    // For SM/Director quick shortcuts
     if(isSMorDirector()){
-      const pBtn = document.createElement("button"); pBtn.className = "btn btn-primary btn-sm"; pBtn.textContent="P"; pBtn.title="Present";
-      pBtn.style.marginLeft="6px"; pBtn.addEventListener("click", async ()=> {
-        await setDoc(doc(db, "attendance", u), { status:"Present", reason:"", by: currentUser.username, time: Date.now() });
+      const pBtn = document.createElement("button"); pBtn.className="btn btn-primary btn-sm"; pBtn.textContent="P"; pBtn.title="Present";
+      pBtn.style.marginLeft="6px"; pBtn.addEventListener("click", async ()=>{
+        await db.collection("attendance").doc(u).set({ status:"Present", reason:"", by: currentUser.username, time: Date.now() });
       });
-      const aBtn = document.createElement("button"); aBtn.className = "btn btn-danger btn-sm"; aBtn.textContent="A"; aBtn.title="Absent";
+      const aBtn = document.createElement("button"); aBtn.className="btn btn-danger btn-sm"; aBtn.textContent="A"; aBtn.title="Absent";
       aBtn.style.marginLeft="6px"; aBtn.addEventListener("click", ()=> {
         attendanceTarget = u; q("absenceReasonSelect").value = "Football"; q("absenceModal").style.display = "flex";
       });
@@ -600,54 +570,41 @@ function renderAttendance(snapshotMap){
     container.appendChild(row);
   });
 
-  // render attendance report if allowed
+  // attendance report
   if(isSMorDirector()){
     q("attendanceReport").classList.remove("hidden");
-    renderAttendanceReportFromMap(snapshotMap);
+    renderAttendanceReportFromMap(map);
   } else {
     q("attendanceReport").classList.add("hidden");
   }
 }
 
-/* ============================
-   Attendance Report rendering
-   ============================ */
 function renderAttendanceReportFromMap(map){
-  const container = q("attendanceReport");
-  container.innerHTML = "<h3>Attendance Report</h3>";
-  const table = document.createElement("table");
+  const container = q("attendanceReport"); container.innerHTML = "<h3>Attendance Report</h3>";
+  const table = document.createElement("table"); table.className = "table";
   const thead = document.createElement("tr");
-  ["Name","Role","Status","Reason","Time","Marked By"].forEach(h=>{ const th = document.createElement("th"); th.textContent = h; thead.appendChild(th); });
+  ["Name","Role","Status","Reason","Time","Marked By"].forEach(h=>{ const th=document.createElement("th"); th.textContent=h; thead.appendChild(th); });
   table.appendChild(thead);
   Object.keys(USERS).forEach(u=>{
     const a = map[u];
     const tr = document.createElement("tr");
-    const cells = [
-      USERS[u].name,
-      USERS[u].role,
-      a ? a.status : "Not Marked",
-      a ? (a.reason || "") : "",
-      a ? formatDateTime(a.time) : "",
-      a ? (USERS[a.by] ? USERS[a.by].name : a.by) : ""
-    ];
-    cells.forEach(c=>{ const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+    const cells = [USERS[u].name, USERS[u].role, a ? a.status : "Not Marked", a ? (a.reason || "") : "", a ? formatDateTime(a.time) : "", a ? (USERS[a.by] ? USERS[a.by].name : a.by) : "" ];
+    cells.forEach(c => { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
     table.appendChild(tr);
   });
   container.appendChild(table);
 }
 
-/* ============================
-   Director summary from schedule list
-   ============================ */
-function renderDirectorSummaryFromSchedule(scheduleItems){
+function renderDirectorSummaryFromSchedule(items){
   const list = q("nextCallsList"); list.innerHTML = "";
-  if(!isDirector()) return;
-  const upcoming = (scheduleItems || []).slice().sort((a,b)=> new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time)).slice(0,6);
+  if(!isDirector()) { q("directorSummaryCard").classList.add("hidden"); return; }
+  q("directorSummaryCard").classList.remove("hidden");
+  const upcoming = (items || []).slice().sort((a,b)=> new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time)).slice(0,6);
   if(upcoming.length === 0){ list.textContent = "No upcoming calls."; return; }
-  upcoming.forEach(s=>{
+  upcoming.forEach(s => {
     const el = document.createElement("div");
-    const whoNames = s.who.map(u => USERS[u].name).join(", ");
-    el.innerHTML = `<div style="font-weight:700">${s.date} ${s.time} — ${whoNames}</div><div class="small">${s.details}</div>`;
+    const whoNames = s.who.map(u=>USERS[u]?.name || u).join(", ");
+    el.innerHTML = `<div style="font-weight:700">${s.date} ${s.time} — ${whoNames}</div><div class="small-muted">${s.details}</div>`;
     list.appendChild(el);
   });
 }
@@ -663,39 +620,83 @@ function clearUI(){
   q("nextCallsList").innerHTML = "";
   q("scheduleForm").classList.add("hidden");
   q("annForm").classList.add("hidden");
-  q("signed-in-controls").classList.add("hidden");
-  q("signed-out-controls").classList.remove("hidden");
+  q("directorSummaryCard").classList.add("hidden");
+  q("directorControls").classList.add("hidden");
+  q("toggleScheduleForm").classList.add("hidden");
+  q("toggleAnnForm").classList.add("hidden");
+  q("exportCsvBtn").classList.add("hidden");
 }
 
 /* ============================
-   Utility: simple deleteDoc wrapper for older SDKs where needed
+   Modal & background behavior
    ============================ */
-import { deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-
-/* ============================
-   Small DOM wiring for modals & background clicks
-   ============================ */
-// close modals when clicking background
 document.querySelectorAll(".modal").forEach(m=>{
   m.addEventListener("click", (e)=>{ if(e.target === m) m.style.display = "none"; });
 });
-// Esc closes
-document.addEventListener("keydown", (e)=>{ if(e.key === "Escape"){ document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); }});
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); });
 
-// show absence launcher when attendance select changes
-q("attendanceSelect").addEventListener("change", ()=>{
-  q("absenceLauncher").classList.toggle("hidden", q("attendanceSelect").value !== "Absent");
-});
-// open absence modal button inside attendance modal — use event delegation (button created earlier)
+q("attendanceSelect").addEventListener("change", ()=> q("absenceLauncher").classList.toggle("hidden", q("attendanceSelect").value !== "Absent"));
+
+/* openAbsence modal button (exists inside attendance modal markup above) */
 document.addEventListener("click", (e)=>{
-  if(e.target && e.target.id === "openAbsenceModalBtn"){ q("absenceModal").style.display = "flex"; q("attendanceModal").style.display = "none"; }
+  if(e.target && e.target.id === "openAbsenceModalBtn"){
+    q("absenceModal").style.display = "flex"; q("attendanceModal").style.display = "none";
+  }
+});
+
+/* connect click handlers for attendance modal actions */
+q("attendanceSaveBtn").addEventListener("click", async ()=>{
+  if(!attendanceTarget){ alert("No actor selected"); return; }
+  const status = q("attendanceSelect").value;
+  if(status === "Absent"){ q("attendanceModal").style.display = "none"; q("absenceModal").style.display = "flex"; return; }
+  await db.collection("attendance").doc(attendanceTarget).set({ status, reason:"", by: currentUser.username, time: Date.now() });
+  q("attendanceModal").style.display = "none";
+});
+
+q("attendanceCancelBtn").addEventListener("click", ()=> q("attendanceModal").style.display = "none");
+
+q("absenceSaveBtn").addEventListener("click", async ()=>{
+  if(!attendanceTarget){ q("absenceModal").style.display = "none"; return; }
+  const reason = q("absenceReasonSelect").value || "Other";
+  await db.collection("attendance").doc(attendanceTarget).set({ status:"Absent", reason, by: currentUser.username, time: Date.now() });
+  q("absenceModal").style.display = "none";
+});
+q("absenceCancelBtn").addEventListener("click", ()=>{ q("absenceModal").style.display="none"; q("attendanceSelect").value="Present"; q("attendanceModal").style.display="flex"; });
+
+/* ============================
+   export CSV uses server data
+   ============================ */
+q("exportCsvBtn").addEventListener("click", async ()=>{
+  const snap = await db.collection("attendance").get();
+  let csv = "Name,Role,Status,Reason,Time,Marked By\n";
+  snap.forEach(d=>{
+    const a = d.data();
+    const uname = d.id;
+    csv += `"${USERS[uname]?.name || uname}","${USERS[uname]?.role || ''}","${a.status || ''}","${a.reason || ''}","${formatDateTime(a.time) || ''}","${a.by || ''}"\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "attendance.csv"; a.click(); URL.revokeObjectURL(url);
 });
 
 /* ============================
-   Initial population of callWho (in case signed-in already)
+   Schedule / announcement deletion uses confirm
    ============================ */
-populateCallWho();
+function showConfirm(title, text, callback){
+  q("confirmTitle").textContent = title;
+  q("confirmText").textContent = text;
+  q("confirmModal").style.display = "flex";
+  confirmCallback = callback;
+}
+q("confirmNoBtn").addEventListener("click", ()=> { q("confirmModal").style.display = "none"; confirmCallback = null; });
+q("confirmYesBtn").addEventListener("click", ()=> { q("confirmModal").style.display = "none"; if(typeof confirmCallback === "function") confirmCallback(); confirmCallback = null; });
 
+/* ============================
+   Start: populate actor select (so it's ready when you sign in)
+   ============================ */
+(function startup(){
+  populateCallWho();
+})();
 </script>
 </body>
 </html>
