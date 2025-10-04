@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PG Theater Call Board — Live (Firebase)</title>
+<title>PG Theater Call Board — Live</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#070607; --card:#0f0f10; --gold:#FFD166; --gold-2:#e0b64f; --muted:#9b9b9b; --danger:#e74c3c; --success:#2ecc71;
-  --radius:12px; --shadow:0 10px 30px rgba(0,0,0,0.6); --maxw:1200px;
+  --radius:12px; --shadow:0 10px 30px rgba(0,0,0,0.6); --maxw:1280px;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#000);color:var(--gold);font-family:Inter,system-ui,Roboto,Arial;-webkit-font-smoothing:antialiased}
-.header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;position:sticky;top:0;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.75));border-bottom:1px solid rgba(255,215,102,0.04);z-index:40}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.75));border-bottom:1px solid rgba(255,215,102,0.04);position:sticky;top:0;z-index:20}
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-2));display:flex;align-items:center;justify-content:center;color:#000;font-weight:800}
 .header-right{display:flex;align-items:center;gap:10px}
@@ -20,7 +20,6 @@ html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#000)
 @media(max-width:980px){.container{grid-template-columns:1fr;padding:0 12px}}
 .card{background:linear-gradient(180deg,var(--card),#0c0c0c);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid rgba(255,215,102,0.04)}
 h1,h2{margin:0}
-h1{font-size:1.05rem}
 h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
 .input, select, textarea { width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--gold); margin-top:6px; font-size:0.95rem;}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
@@ -39,22 +38,52 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
 .fade-in{animation:fadeIn .22s ease-in}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* Attendance table wrapper for preventing overflow */
+/* Attendance table wrapper for preventing overflow (right column) */
 #attendanceWrapper{max-height:420px;overflow:auto;border-radius:8px;padding-right:6px}
 #attendanceTable{width:100%;min-width:760px;border-collapse:collapse}
 #attendanceTable th,#attendanceTable td{border:1px solid rgba(255,215,102,0.06);padding:8px;vertical-align:middle;white-space:nowrap}
 .col-wrap{max-width:160px;white-space:normal;word-break:break-word}
-@media(max-width:760px){#attendanceTable{min-width:900px}}
+
+/* Big attendance REPORT on LEFT — wider and left-shifted */
+#attendanceReportLargeCard {
+  grid-column: 1 / 2; /* make sure it sits in left column */
+  margin-bottom: 12px;
+}
+#attendanceReportLarge {
+  max-height:520px;
+  overflow:auto;
+  border-radius:10px;
+  padding-right:8px;
+}
+#attendanceReportLarge table{min-width:900px}
+
+/* responsive adjustments */
+@media(max-width:980px){
+  #attendanceReportLarge table{min-width:700px}
+  #attendanceTable{min-width:700px}
+}
+
+/* small styles */
 .badge{padding:6px 8px;border-radius:8px;font-weight:700}
 .present{background:rgba(46,204,113,0.12);color:var(--success)}
 .absent{background:rgba(231,76,60,0.08);color:var(--danger)}
 .tardy{background:rgba(255,215,102,0.08);color:var(--gold)}
 .left{background:rgba(200,200,200,0.06);color:#ccc}
 .small-muted{font-size:0.85rem;color:var(--muted)}
+/* center login */
+#signinFullScreen {
+  position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6));
+  z-index:400;
+}
+#signinBox { width:420px; max-width:94%; background: linear-gradient(180deg,var(--card),#0f0f0f); border-radius:12px; padding:20px; border:1px solid rgba(255,215,102,0.06); box-shadow: 0 18px 60px rgba(0,0,0,0.7); text-align:left; }
+#signinBox h2{color:var(--gold); margin:0 0 10px 0}
+#signinBox .input{margin:8px 0}
+.small-note{font-size:0.85rem;color:var(--muted); margin-top:8px}
 </style>
 </head>
 <body>
 
+<!-- header -->
 <div class="header">
   <div class="brand">
     <div class="logo">PG</div>
@@ -65,12 +94,7 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
   </div>
 
   <div class="header-right">
-    <div id="signed-out-controls">
-      <input id="usernameInput" class="input" placeholder="username" style="width:140px">
-      <input id="passwordInput" class="input" placeholder="password" type="password" style="width:180px">
-      <button id="signinBtn" class="btn btn-primary">Sign In</button>
-    </div>
-
+    <!-- keep small creds in header but the main entry is full-screen modal -->
     <div id="signed-in-controls" class="hidden" style="align-items:center;gap:12px">
       <div id="signedInAs" class="small"></div>
       <button id="signoutBtn" class="btn btn-ghost">Sign Out</button>
@@ -78,7 +102,35 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
   </div>
 </div>
 
-<div class="container">
+<!-- Sign-in full-screen modal (rest of app hidden behind until login) -->
+<div id="signinFullScreen">
+  <div id="signinBox">
+    <h2>Sign In — PG Theater Call Board</h2>
+    <div class="small-muted">Use your username and password. Everything is private until you sign in.</div>
+    <input id="usernameInput" class="input" placeholder="username">
+    <input id="passwordInput" class="input" placeholder="password" type="password">
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+      <button id="signinBtn" class="btn btn-primary">Sign In</button>
+      <button id="signinCancelBtn" class="btn btn-ghost" title="Hide sign-in? (not recommended)">Cancel</button>
+    </div>
+    <div class="small-note">Directors: lnewton -> cclark. Stage Managers: nwalker -> ljulien. Actors will see only their calls and attendance.</div>
+  </div>
+</div>
+
+<!-- main container (hidden behind sign-in modal until login) -->
+<div class="container" id="mainApp" style="visibility:hidden;">
+
+  <!-- Attendance Report Large Card (left column, prominent) -->
+  <div id="attendanceReportLargeCard" class="card fade-in">
+    <h2>Attendance Report (Large)</h2>
+    <div id="attendanceReportLarge" class="small-muted">
+      <!-- big table rendered here for SMs/Directors -->
+      <div id="attendanceReportLargeInner">Sign in to view report.</div>
+    </div>
+    <div style="margin-top:8px" class="small-muted">This report shows all actors, their latest status, reason, time, and who marked them.</div>
+  </div>
+
+  <!-- LEFT column: Schedule + Announcements -->
   <div>
     <div id="directorSummaryCard" class="card hidden fade-in">
       <h2>Next Calls (Directors)</h2>
@@ -126,15 +178,16 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
     </div>
   </div>
 
+  <!-- RIGHT column: Attendance live + Director tools -->
   <div>
     <div class="card fade-in">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <h2>Attendance</h2>
+        <h2>Attendance (Quick)</h2>
         <div><button id="exportCsvBtn" class="btn btn-primary hidden">Export CSV</button></div>
       </div>
 
       <div id="attendanceWrapper">
-        <table id="attendanceTable" class="table">
+        <table id="attendanceTable" class="table" aria-live="polite">
           <thead>
             <tr>
               <th>Actor</th>
@@ -148,22 +201,19 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
           <tbody id="attendanceList"></tbody>
         </table>
       </div>
-
-      <div id="attendanceReport" class="hidden" style="margin-top:12px"></div>
     </div>
 
     <div id="directorControls" class="card hidden fade-in">
       <h2>Director Tools</h2>
       <div style="display:flex;gap:8px;flex-direction:column">
         <button id="forceMarkBtn" class="btn btn-primary">Force Mark All Present</button>
-        <div class="small" style="margin-top:8px">Force-mark sets unmarked actors Present with your name.</div>
+        <div class="small" style="margin-top:8px">Force-mark sets unmarked actors Present and records you as the marker.</div>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- Attendance Modal -->
+<!-- Attendance modal -->
 <div id="attendanceModal" class="modal">
   <div class="modal-card">
     <h3>Mark Attendance</h3>
@@ -223,7 +273,9 @@ h2{font-size:1rem;color:var(--gold);margin-bottom:8px}
 <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
 
 <script>
-/* ---------- Firebase config (using your project) ---------- */
+/* ============================
+   Firebase config — using your project
+   ============================ */
 const firebaseConfig = {
   apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
   authDomain: "pg-theater-call-board.firebaseapp.com",
@@ -233,10 +285,13 @@ const firebaseConfig = {
   appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
   measurementId: "G-ELWLH31ZCJ"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ---------- Local USERS (provided accounts) ---------- */
+/* ============================
+   Local USERS (provided accounts)
+   ============================ */
 const USERS = {
   lnewton:{password:"?2@2yzz~PVJf", name:"L. Newton", role:"Director"},
   tbeck:{password:"pHR68Db.Pw.#", name:"T. Beck", role:"Director"},
@@ -257,7 +312,9 @@ const USERS = {
   gromero:{password:"j.dab8,6X_m2", name:"G. Romero", role:"Actor"}
 };
 
-/* ---------- State & helpers ---------- */
+/* ============================
+   State & helpers
+   ============================ */
 let currentUser = null;
 let attendanceTarget = null;
 let confirmCallback = null;
@@ -268,7 +325,9 @@ function isSMorDirector(){ return currentUser && (currentUser.role === "Stage Ma
 function isDirector(){ return currentUser && currentUser.role === "Director"; }
 function formatDate(ts){ return ts ? new Date(ts).toLocaleString() : ""; }
 
-/* ---------- Real-time listeners ---------- */
+/* ============================
+   Start realtime listeners
+   ============================ */
 function startRealtime(){
   unsubAnnouncements = db.collection("announcements").orderBy("time","desc")
     .onSnapshot(snap => { const items=[]; snap.forEach(d=>items.push({id:d.id,...d.data()})); renderAnnouncements(items); });
@@ -277,38 +336,51 @@ function startRealtime(){
     .onSnapshot(snap => { const items=[]; snap.forEach(d=>items.push({id:d.id,...d.data()})); renderSchedule(items); });
 
   unsubAttendance = db.collection("attendance")
-    .onSnapshot(snap => { const map={}; snap.forEach(d=>map[d.id]=d.data()); renderAttendance(map); });
+    .onSnapshot(snap => { const map={}; snap.forEach(d=>map[d.id]=d.data()); renderAttendance(map); renderAttendanceReportLarge(map); });
 }
-function stopRealtime(){
-  unsubAnnouncements && unsubAnnouncements(); unsubSchedule && unsubSchedule(); unsubAttendance && unsubAttendance();
-  unsubAnnouncements = unsubSchedule = unsubAttendance = null;
-}
+function stopRealtime(){ unsubAnnouncements && unsubAnnouncements(); unsubSchedule && unsubSchedule(); unsubAttendance && unsubAttendance(); unsubAnnouncements=unsubSchedule=unsubAttendance=null; }
 
-/* ---------- Auth (local list) ---------- */
-q("signinBtn").addEventListener("click", ()=>{
+/* ============================
+   Auth (local) — sign-in modal handling
+   ============================ */
+q("signinBtn").addEventListener("click", ()=> {
   const username = q("usernameInput").value.trim();
   const password = q("passwordInput").value;
   if(!username || !password){ alert("Enter credentials"); return; }
   const u = USERS[username];
   if(!u || u.password !== password){ alert("Invalid username/password"); return; }
   currentUser = { username, name: u.name, role: u.role };
-  q("signed-out-controls").classList.add("hidden");
+  // hide full-screen signin
+  document.getElementById("signinFullScreen").style.display = "none";
+  document.getElementById("mainApp").style.visibility = "visible";
   q("signed-in-controls").classList.remove("hidden");
   q("signedInAs").textContent = `${currentUser.name} — ${currentUser.role}`;
   attachRoleUI();
   populateCallWho();
   startRealtime();
 });
-q("signoutBtn").addEventListener("click", ()=>{
+
+// optional cancel: hide modal but still keep app invisible — user can re-open later
+q("signinCancelBtn").addEventListener("click", ()=> {
+  // small convenience: do nothing except close modal (but app still hidden)
+  document.getElementById("signinFullScreen").style.display = "none";
+  // keep main app hidden to enforce sign-in usage:
+  document.getElementById("mainApp").style.visibility = "hidden";
+});
+
+q("signoutBtn").addEventListener("click", ()=> {
   stopRealtime();
   currentUser = null;
-  q("signed-out-controls").classList.remove("hidden");
+  document.getElementById("signinFullScreen").style.display = "flex";
+  document.getElementById("mainApp").style.visibility = "hidden";
   q("signed-in-controls").classList.add("hidden");
   q("signedInAs").textContent = "";
   clearUI();
 });
 
-/* ---------- Role UI ---------- */
+/* ============================
+   Role UI & populate select
+   ============================ */
 function attachRoleUI(){
   if(!currentUser) return;
   if(isSMorDirector()){
@@ -322,48 +394,44 @@ function attachRoleUI(){
     q("exportCsvBtn").classList.add("hidden");
     document.querySelectorAll(".manageCol").forEach(el=>el.classList.add("hidden"));
   }
-  if(isDirector()){
-    q("directorSummaryCard").classList.remove("hidden");
-    q("directorControls").classList.remove("hidden");
-  } else {
-    q("directorSummaryCard").classList.add("hidden");
-    q("directorControls").classList.add("hidden");
-  }
+  if(isDirector()){ q("directorSummaryCard").classList.remove("hidden"); q("directorControls").classList.remove("hidden"); }
+  else { q("directorSummaryCard").classList.add("hidden"); q("directorControls").classList.add("hidden"); }
 }
 
-/* ---------- Populate actor selector ---------- */
 function populateCallWho(){
   const sel = q("callWho"); sel.innerHTML = "";
-  Object.keys(USERS).forEach(u=>{
-    if(USERS[u].role === "Actor"){ const opt=document.createElement("option"); opt.value=u; opt.textContent=USERS[u].name; sel.appendChild(opt); }
-  });
+  Object.keys(USERS).forEach(u => { if(USERS[u].role === "Actor"){ const opt = document.createElement("option"); opt.value = u; opt.textContent = USERS[u].name; sel.appendChild(opt); }});
 }
 
-/* ---------- Schedule: add/delete ---------- */
+/* ============================
+   Schedule add/delete
+   ============================ */
 q("toggleScheduleForm").addEventListener("click", ()=> q("scheduleForm").classList.toggle("hidden"));
 q("cancelCallBtn").addEventListener("click", ()=> q("scheduleForm").classList.add("hidden"));
-
-q("addCallBtn").addEventListener("click", async ()=>{
-  const date = q("callDate").value; const time = q("callTime").value;
-  const details = q("callDetails").value.trim(); const selected = Array.from(q("callWho").selectedOptions).map(o=>o.value);
-  if(!date || !time || selected.length===0){ alert("Fill date, time and select at least one actor."); return; }
+q("addCallBtn").addEventListener("click", async ()=> {
+  const date = q("callDate").value, time = q("callTime").value, details = q("callDetails").value.trim();
+  const selected = Array.from(q("callWho").selectedOptions).map(o=>o.value);
+  if(!date || !time || selected.length===0){ alert("Fill date/time and select at least one actor."); return; }
   await db.collection("schedule").add({ date, time, who:selected, details, createdBy: currentUser.username, createdAt: Date.now() });
   q("callDate").value=""; q("callTime").value=""; q("callDetails").value=""; q("callWho").selectedIndex=-1;
   q("scheduleForm").classList.add("hidden");
 });
 
-/* ---------- Announcements: add/delete ---------- */
+/* ============================
+   Announcements add/delete
+   ============================ */
 q("toggleAnnForm").addEventListener("click", ()=> q("annForm").classList.toggle("hidden"));
 q("cancelAnnBtn").addEventListener("click", ()=> q("annForm").classList.add("hidden"));
-
-q("addAnnouncementBtn").addEventListener("click", async ()=>{
+q("addAnnouncementBtn").addEventListener("click", async ()=> {
   const text = q("announcementText").value.trim(); if(!text){ alert("Enter announcement"); return; }
   await db.collection("announcements").add({ text, by: currentUser.username, time: Date.now() });
   q("announcementText").value=""; q("annForm").classList.add("hidden");
 });
 
-/* ---------- Attendance flow ---------- */
-q("attendanceSaveBtn").addEventListener("click", async ()=>{
+/* ============================
+   Attendance modal flow (writes include status, reason, by, time)
+   ============================ */
+q("attendanceSaveBtn").addEventListener("click", async ()=> {
   if(!attendanceTarget){ alert("No actor selected"); return; }
   const status = q("attendanceSelect").value;
   if(status === "Absent"){ q("attendanceModal").style.display="none"; q("absenceModal").style.display="flex"; return; }
@@ -371,50 +439,58 @@ q("attendanceSaveBtn").addEventListener("click", async ()=>{
   q("attendanceModal").style.display="none";
 });
 q("attendanceCancelBtn").addEventListener("click", ()=> q("attendanceModal").style.display="none");
-
-q("absenceSaveBtn").addEventListener("click", async ()=>{
+q("absenceSaveBtn").addEventListener("click", async ()=> {
   if(!attendanceTarget){ q("absenceModal").style.display="none"; return; }
   const reason = q("absenceReasonSelect").value || "Other";
   await db.collection("attendance").doc(attendanceTarget).set({ status:"Absent", reason, by: currentUser.username, time: Date.now() });
   q("absenceModal").style.display="none";
 });
 q("absenceCancelBtn").addEventListener("click", ()=> { q("absenceModal").style.display="none"; q("attendanceSelect").value="Present"; q("attendanceModal").style.display="flex"; });
-
 document.addEventListener("click", (e)=>{ if(e.target && e.target.id === "openAbsenceModalBtn"){ q("absenceModal").style.display="flex"; q("attendanceModal").style.display="none"; }});
 q("attendanceSelect").addEventListener("change", ()=> q("absenceLauncher").classList.toggle("hidden", q("attendanceSelect").value !== "Absent"));
 
-/* ---------- Quick mark helpers ---------- */
+/* ============================
+   Quick mark helpers (include by & time)
+   ============================ */
 async function quickMarkPresent(u){ await db.collection("attendance").doc(u).set({ status:"Present", reason:"", by: currentUser.username, time: Date.now() }); }
 async function quickMarkTardy(u){ await db.collection("attendance").doc(u).set({ status:"Tardy", reason:"", by: currentUser.username, time: Date.now() }); }
 async function quickMarkLeftEarly(u){ await db.collection("attendance").doc(u).set({ status:"Left Early", reason:"", by: currentUser.username, time: Date.now() }); }
 function quickMarkAbsentLauncher(u){ attendanceTarget = u; q("absenceReasonSelect").value="Football"; q("absenceModal").style.display="flex"; }
 
-/* ---------- CSV Export ---------- */
-q("exportCsvBtn").addEventListener("click", async ()=>{
+/* ============================
+   Export CSV
+   ============================ */
+q("exportCsvBtn").addEventListener("click", async ()=> {
   const snap = await db.collection("attendance").get();
   let csv = "Name,Role,Status,Reason,Time,Marked By\n";
   snap.forEach(d=>{ const a=d.data(); const uname=d.id; csv += `"${USERS[uname]?.name || uname}","${USERS[uname]?.role || ''}","${a.status||''}","${a.reason||''}","${formatDate(a.time)||''}","${a.by||''}"\n`; });
-  const blob = new Blob([csv], {type:"text/csv"}); const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url; a.download="attendance.csv"; a.click(); URL.revokeObjectURL(url);
+  const blob = new Blob([csv], {type:"text/csv"}); const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="attendance.csv"; a.click(); URL.revokeObjectURL(url);
 });
 
-/* ---------- Force mark (director) ---------- */
-q("forceMarkBtn").addEventListener("click", async ()=>{
+/* ============================
+   Force mark (director)
+   ============================ */
+q("forceMarkBtn").addEventListener("click", async ()=> {
   if(!isDirector()) return alert("Directors only");
   if(!confirm("Mark all unmarked actors Present?")) return;
-  const snap = await db.collection("attendance").get(); const present = new Set(); snap.forEach(d=>present.add(d.id));
-  const ops = []; Object.keys(USERS).forEach(u=>{ if(USERS[u].role==="Actor" && !present.has(u)) ops.push(db.collection("attendance").doc(u).set({ status:"Present", reason:"", by: currentUser.username, time: Date.now() })); });
+  const snap = await db.collection("attendance").get(); const present=new Set(); snap.forEach(d=>present.add(d.id));
+  const ops=[]; Object.keys(USERS).forEach(u=>{ if(USERS[u].role==="Actor" && !present.has(u)) ops.push(db.collection("attendance").doc(u).set({ status:"Present", reason:"", by: currentUser.username, time: Date.now() })); });
   await Promise.all(ops); alert("Force-mark complete.");
 });
 
-/* ---------- Confirm modal ---------- */
+/* ============================
+   Confirm modal
+   ============================ */
 function showConfirm(title,text,cb){ q("confirmTitle").textContent=title; q("confirmText").textContent=text; q("confirmModal").style.display="flex"; confirmCallback=cb; }
 q("confirmNoBtn").addEventListener("click", ()=>{ q("confirmModal").style.display="none"; confirmCallback=null; });
 q("confirmYesBtn").addEventListener("click", ()=>{ q("confirmModal").style.display="none"; if(typeof confirmCallback==="function") confirmCallback(); confirmCallback=null; });
 
-/* ---------- Render functions ---------- */
+/* ============================
+   Render functions
+   ============================ */
 function renderAnnouncements(items){
-  const container = q("announcementsList"); container.innerHTML = "";
+  const container = q("announcementsList"); container.innerHTML="";
   if(!items.length){ container.innerHTML = `<div class="small">No announcements.</div>`; return; }
   items.forEach(a=>{
     const row = document.createElement("div"); row.className="entry-row";
@@ -430,7 +506,7 @@ function renderAnnouncements(items){
 }
 
 function renderSchedule(items){
-  const container = q("scheduleList"); container.innerHTML = "";
+  const container = q("scheduleList"); container.innerHTML="";
   if(!items.length){ container.innerHTML = `<div class="small">No calls scheduled.</div>`; return; }
   items.sort((A,B)=> new Date(A.date + " " + A.time) - new Date(B.date + " " + B.time));
   items.forEach(s=>{
@@ -475,8 +551,35 @@ function renderAttendance(map){
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
+}
 
-  if(isSMorDirector()){ q("attendanceReport").classList.remove("hidden"); renderAttendanceReportFromMap(map); } else { q("attendanceReport").classList.add("hidden"); }
+/* Render LARGE attendance report on the left (bigger and left-shifted) */
+function renderAttendanceReportLarge(map){
+  const container = q("attendanceReportLargeInner");
+  // only show for SM/Director
+  if(!isSMorDirector()){ container.innerHTML = `<div class="small-muted">Sign in as Stage Manager or Director to view full report.</div>`; return; }
+  // build table
+  const table = document.createElement("table");
+  table.className = "table";
+  const thead = document.createElement("tr");
+  ["Name","Role","Status","Reason","Time","Marked By"].forEach(h=>{ const th=document.createElement("th"); th.textContent = h; thead.appendChild(th); });
+  table.appendChild(thead);
+  Object.keys(USERS).forEach(u=>{
+    if(USERS[u].role !== "Actor") return;
+    const a = map[u];
+    const tr = document.createElement("tr");
+    const cells = [
+      USERS[u].name,
+      USERS[u].role,
+      a ? a.status : "Not Marked",
+      a ? (a.reason || "") : "",
+      a ? formatDate(a.time) : "",
+      a ? (USERS[a.by] ? USERS[a.by].name : a.by) : ""
+    ];
+    cells.forEach(c=>{ const td=document.createElement("td"); td.textContent=c; tr.appendChild(td); });
+    table.appendChild(tr);
+  });
+  container.innerHTML = ""; container.appendChild(table);
 }
 
 function renderAttendanceReportFromMap(map){
@@ -488,7 +591,7 @@ function renderAttendanceReportFromMap(map){
   Object.keys(USERS).forEach(u=>{
     const a = map[u];
     const tr = document.createElement("tr");
-    const cells = [USERS[u].name, USERS[u].role, a ? a.status : "Not Marked", a ? (a.reason||"") : "", a ? formatDate(a.time) : "", a ? (USERS[a.by] ? USERS[a.by].name : a.by) : ""];
+    const cells = [USERS[u].name, USERS[u].role, a ? a.status : "Not Marked", a ? (a.reason || "") : "", a ? formatDate(a.time) : "", a ? (USERS[a.by] ? USERS[a.by].name : a.by) : "" ];
     cells.forEach(c=>{ const td=document.createElement("td"); td.textContent=c; tr.appendChild(td); });
     table.appendChild(tr);
   });
@@ -496,28 +599,40 @@ function renderAttendanceReportFromMap(map){
 }
 
 function renderDirectorSummaryFromSchedule(items){
-  const list = q("nextCallsList"); list.innerHTML="";
+  const list = q("nextCallsList"); list.innerHTML = "";
   if(!isDirector()){ q("directorSummaryCard").classList.add("hidden"); return; }
   q("directorSummaryCard").classList.remove("hidden");
-  const upcoming = (items||[]).slice().sort((a,b)=> new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time)).slice(0,6);
-  if(!upcoming.length){ list.textContent="No upcoming calls."; return; }
-  upcoming.forEach(s=>{ const el=document.createElement("div"); const whoNames = s.who.map(u=>USERS[u]?.name||u).join(", "); el.innerHTML=`<div style="font-weight:700">${s.date} ${s.time} — ${whoNames}</div><div class="small-muted">${s.details}</div>`; list.appendChild(el); });
+  const upcoming = (items || []).slice().sort((a,b)=> new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time)).slice(0,6);
+  if(upcoming.length === 0){ list.textContent = "No upcoming calls."; return; }
+  upcoming.forEach(s=>{
+    const el = document.createElement("div");
+    const whoNames = s.who.map(u => USERS[u]?.name || u).join(", ");
+    el.innerHTML = `<div style="font-weight:700">${s.date} ${s.time} — ${whoNames}</div><div class="small-muted">${s.details}</div>`;
+    list.appendChild(el);
+  });
 }
 
-/* ---------- Clear UI on signout ---------- */
+/* ============================
+   UI cleanup on signout
+   ============================ */
 function clearUI(){
-  q("announcementsList").innerHTML = ""; q("scheduleList").innerHTML = ""; q("attendanceList").innerHTML = ""; q("attendanceReport").innerHTML = ""; q("nextCallsList").innerHTML = "";
+  q("announcementsList").innerHTML = ""; q("scheduleList").innerHTML = ""; q("attendanceList").innerHTML = ""; q("attendanceReportLargeInner").innerHTML = "Sign in to view report."; q("attendanceReport").innerHTML = "";
+  q("nextCallsList").innerHTML = "";
   q("scheduleForm").classList.add("hidden"); q("annForm").classList.add("hidden");
   q("directorSummaryCard").classList.add("hidden"); q("directorControls").classList.add("hidden");
   q("toggleScheduleForm").classList.add("hidden"); q("toggleAnnForm").classList.add("hidden"); q("exportCsvBtn").classList.add("hidden");
 }
 
-/* ---------- Modal behavior ---------- */
-document.querySelectorAll(".modal").forEach(m=> m.addEventListener("click",(e)=>{ if(e.target===m) m.style.display="none"; }));
-document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") document.querySelectorAll(".modal").forEach(m=>m.style.display="none"); });
+/* ============================
+   Modal helpers & keyboard
+   ============================ */
+document.querySelectorAll(".modal").forEach(m=> m.addEventListener("click", (e)=> { if(e.target===m) m.style.display="none"; } ));
+document.addEventListener("keydown", (e)=> { if(e.key === "Escape") document.querySelectorAll(".modal").forEach(m=> m.style.display="none"); });
 
-/* ---------- Startup ---------- */
-(function init(){ populateCallWho(); })();
+/* ============================
+   Startup: populate actor select
+   ============================ */
+(function startup(){ populateCallWho(); })();
 </script>
 </body>
 </html>
