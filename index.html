@@ -1,175 +1,724 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PG Theater Call Board</title>
-<style>
-  body { margin:0; font-family:Arial,sans-serif; background:#0d0d0d; color:#FFD700; }
-  .header { display:flex; justify-content:space-between; align-items:center; background:#111; padding:12px 24px; border-bottom:2px solid #FFD700; }
-  .header h1 { margin:0; font-size:1.5rem; color:#FFD700; }
-  #clock { font-size:1rem; color:#fff; }
-  button { padding:6px 12px; margin:2px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; transition:0.2s; }
-  button:hover { opacity:0.85; transform:scale(1.05); }
-  .btn-ghost { background:none; color:#FFD700; border:1px solid #FFD700; }
-  .container { padding:24px; max-width:1200px; margin:auto; }
-  table { width:100%; border-collapse: collapse; margin-top:12px; }
-  th, td { border:1px solid #FFD700; padding:8px; text-align:center; font-size:0.9rem; }
-  th { background:#222; }
-  td { background:#111; }
-  input, select, textarea { padding:6px; margin:2px; border-radius:4px; border:1px solid #FFD700; background:#0d0d0d; color:#FFD700; }
-  textarea { resize:none; }
-  #loginScreen { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
-  #loginScreen input { margin:6px; width:200px; }
-  #mainBoard { display:none; }
-  .attendance-button { margin:2px; padding:4px 8px; border:none; border-radius:4px; cursor:pointer; font-size:0.8rem; }
-  .present { background:#00FF00; color:#000; }
-  .absent { background:#FF0000; color:#fff; }
-  .tardy { background:#FFD700; color:#000; }
-  .left { background:#555; color:#fff; }
-  .announcement { border:1px solid #FFD700; padding:8px; margin-bottom:6px; background:#111; }
-  .hover-highlight:hover { background:#333; }
-  .section-title { font-size:1.2rem; margin-top:24px; margin-bottom:12px; border-bottom:1px solid #FFD700; padding-bottom:4px; }
-  .form-inline { display:flex; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
-  .form-inline input, .form-inline button { margin-right:6px; }
-  #attendanceWrapper { max-height:300px; overflow-y:auto; margin-bottom:12px; border:1px solid #FFD700; }
-  #cuesTable th, #cuesTable td { font-size:0.85rem; }
-  /* ================= Show Mode Button ================= */
-  #showModeBtnMain {
-    display:none; 
-    padding:12px 24px; 
-    font-size:1.2rem; 
-    margin-bottom:20px; 
-    background:#FFD700; 
-    color:#0d0d0d; 
-    font-weight:bold; 
-    border-radius:8px; 
-    cursor:pointer; 
-    border:2px solid #FFD700;
-    transition:0.3s;
-  }
-  #showModeBtnMain:hover {
-    background:#fff;
-    color:#FFD700;
-    transform:scale(1.05);
-  }
-</style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
-
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
-  authDomain: "pg-theater-call-board.firebaseapp.com",
-  databaseURL: "https://pg-theater-call-board-default-rtdb.firebaseio.com",
-  projectId: "pg-theater-call-board",
-  storageBucket: "pg-theater-call-board.firebasestorage.app",
-  messagingSenderId: "850857757575",
-  appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
-  measurementId: "G-ELWLH31ZCJ"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// User Accounts
-const accounts = {
-  lnewton:{password:"?2@2yzz~PVJf", role:"Director"},
-  tbeck:{password:"pHR68Db.Pw.#", role:"AD/Coreography"},
-  gloshe:{password:"iT=hy!7G9NTf", role:"Tech Director"},
-  bflieder:{password:"-W9m=>D_AUzF", role:"ATD/Hair Guru"},
-  cclark:{password:"iJ+va7>Df}#@", role:"SATD"},
-  ljulien:{password:";3y2Paz9£9?m", role:"Stage Manager"},
-  hflowers:{password:"i£08um?B51.x", role:"Stage Manager"},
-  nwalker:{password:"9^1~R7C*QVdV", role:"Stage Manager"},
-  apate:{password:"y~D+V3R-37Wt", role:"Actor"},
-  cbeck:{password:"G?5sLRCkZYCg", role:"Actor"},
-  sjulien:{password:"#0Y57gk*b?Jq", role:"Actor"},
-  agipson:{password:"c!?xGW2JvB:2", role:"Actor"},
-  owyatt:{password:"9vq-B#4q]}>.", role:"Actor"},
-  swyatt:{password:"B?2jjtvNqtq_", role:"Actor"},
-  afry:{password:"5Mxc,kQpd,!T", role:"Actor"},
-  rromero:{password:"=4A*pq+xQq:!", role:"Actor"},
-  gromero:{password:"j.dab8,6X_m2", role:"Actor"}
-};
-
-let currentUser = null;
-
-// DOM Elements
-const loginScreen = document.getElementById("loginScreen");
-const mainBoard = document.getElementById("mainBoard");
-const loginForm = document.getElementById("loginForm");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const signedInAs = document.getElementById("signedInAs");
-const showModeBtnMain = document.getElementById("showModeBtnMain");
-
-// Clock
-function updateCSTClock(){
-  const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset()*60000);
-  const offset = -6; // CST
-  const cst = new Date(utc + (3600000*offset));
-  let hours = cst.getHours();
-  const minutes = cst.getMinutes();
-  const ampm = hours>=12?"PM":"AM";
-  hours = hours%12; if(hours===0) hours=12;
-  const minStr = minutes<10?'0'+minutes:minutes;
-  document.getElementById("clock").textContent = `CST ${hours}:${minStr} ${ampm}`;
-}
-setInterval(updateCSTClock,1000);
-updateCSTClock();
-
-// Login
-loginForm.addEventListener("submit", e=>{
-  e.preventDefault();
-  const user=usernameInput.value;
-  const pass=passwordInput.value;
-  if(accounts[user] && accounts[user].password===pass){
-    currentUser = {name:user, role:accounts[user].role};
-    loginScreen.style.display="none";
-    mainBoard.style.display="block";
-    signedInAs.textContent = `Signed in as: ${currentUser.name} (${currentUser.role})`;
-    
-    // Show button only for Stage Managers / Directors
-    if(currentUser.role==="Stage Manager" || currentUser.role==="Director"){
-      showModeBtnMain.style.display="inline-block";
-    }
-    
-    // Here you would call your renderAttendance(), renderAnnouncements(), renderCues() functions
-  } else {
-    alert("Invalid username or password");
-  }
-});
-</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Theatre Call Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        .font-display {
+            font-family: 'Playfair Display', serif;
+        }
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.75);
+        }
+        /* Custom scrollbar for a more polished look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+    </style>
 </head>
-<body>
-<div class="header">
-  <h1>PG Theater Call Board</h1>
-  <div id="clock"></div>
-  <div id="signedInAs"></div>
-</div>
+<body class="text-gray-200 h-full overflow-hidden">
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen">
-  <h2>Sign In</h2>
-  <form id="loginForm">
-    <input id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit" class="btn">Sign In</button>
-  </form>
-</div>
+    <div id="app-container" class="h-full flex flex-col">
 
-<!-- MAIN BOARD -->
-<div id="mainBoard">
-  <div class="container">
-    <!-- SHOW MODE BUTTON -->
-    <button id="showModeBtnMain" onclick="window.location.href='showmode.html'">Go to Show Mode</button>
+        <!-- Login View -->
+        <div id="login-view" class="flex items-center justify-center min-h-screen bg-gray-900">
+            <div class="text-center p-8 bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full">
+                <h1 class="font-display text-4xl text-amber-300 mb-2">Virtual Call Board</h1>
+                <p class="text-gray-400 mb-6">Please sign in to continue.</p>
+                <form id="login-form">
+                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-700 text-white p-3 rounded mb-3 text-center" required>
+                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-700 text-white p-3 rounded mb-4 text-center" required>
+                    <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Portal View -->
+        <div id="main-portal-view" class="hidden h-full flex flex-col">
+            <!-- Header -->
+            <header id="portal-header" class="p-4 shadow-lg flex justify-between items-center">
+                <div>
+                    <h1 class="font-display text-3xl" id="portal-title">Portal</h1>
+                    <p class="text-sm text-gray-400">Welcome, <span id="welcome-name">User</span>!</p>
+                </div>
+                <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Log Out</button>
+            </header>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Left Column: Attendance & Calls -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <!-- Attendance Section -->
+                        <div id="attendance-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold font-display text-amber-300">Attendance</h2>
+                            </div>
+                            <div id="attendance-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                <!-- Actor list will be rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- Calls Section -->
+                        <div id="calls-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold font-display text-amber-300">Daily Calls</h2>
+                                <button onclick="openCallModal()" class="hidden sm-director-btn bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                            </div>
+                            <div id="call-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                <!-- Call items will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Announcements & Behavior -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Announcements Section -->
+                        <div id="announcements-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold font-display text-amber-300">Announcements</h2>
+                                <button onclick="openAnnouncementModal()" class="hidden sm-director-btn bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                            </div>
+                            <div id="announcement-list" class="space-y-4 max-h-[40rem] overflow-y-auto pr-2">
+                                <!-- Announcements will be rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- Behavior Section -->
+                        <div id="behavior-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold font-display text-amber-300">Behavior Notes</h2>
+                                <button onclick="openModal('behavior-modal')" class="hidden director-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                            </div>
+                            <div id="behavior-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                <!-- Behavior notes will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Announcement Modal -->
+    <div id="announcement-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md m-4">
+            <h3 id="announcement-modal-title" class="text-xl font-bold mb-4">New Announcement</h3>
+            <form id="announcement-form">
+                <input type="hidden" id="announcement-id">
+                <input id="announcement-title" type="text" placeholder="Title" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
+                <textarea id="announcement-content" placeholder="Details..." rows="4" class="w-full bg-gray-700 text-white p-2 rounded mb-4" required></textarea>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('announcement-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Call Modal -->
+    <div id="call-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop overflow-y-auto py-10">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-lg m-4">
+            <h3 id="call-modal-title" class="text-xl font-bold mb-4">New Call</h3>
+            <form id="call-form">
+                <input type="hidden" id="call-id">
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <input id="call-date" type="date" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                    <input id="call-time" type="time" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                </div>
+                <input id="call-location" type="text" placeholder="Location (e.g., Main Stage)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
+                <textarea id="call-notes" placeholder="Notes (e.g., Full cast, warmups at 6:45)" rows="3" class="w-full bg-gray-700 text-white p-2 rounded mb-4"></textarea>
+                
+                <div class="mb-4">
+                    <h4 class="font-bold mb-2">Who's Called?</h4>
+                    <div id="call-actors-list" class="max-h-48 overflow-y-auto bg-gray-700 p-3 rounded-lg space-y-2">
+                        <!-- Actor checkboxes will be generated here -->
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('call-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">Save Call</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Behavior Modal -->
+    <div id="behavior-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md m-4">
+            <h3 class="text-xl font-bold mb-4">New Behavior Note</h3>
+            <form id="behavior-form">
+                <input id="behavior-title" type="text" placeholder="Subject (e.g., Actor Name or Topic)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
+                <textarea id="behavior-description" placeholder="Description of behavior..." rows="3" class="w-full bg-gray-700 text-white p-2 rounded mb-4" required></textarea>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('behavior-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
     
-    <!-- Here would be Attendance, Announcements, Show Mode Cues sections -->
-    <!-- Your previous attendance, announcements, and cues tables/forms go below -->
-    
-  </div>
-</div>
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center">
+            <h3 class="text-xl font-bold mb-4">Are you sure?</h3>
+            <p class="text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-center gap-4">
+                <button type="button" onclick="closeModal('delete-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded">Cancel</button>
+                <button id="confirm-delete-btn" type="button" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded">Delete</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- DATABASE ---
+        const state = {
+            currentUser: null,
+            users: [
+                { id: 1, username: 'lnewton', password: '?2@2yzz~PVJf', role: 'director', name: 'L. Newton' },
+                { id: 2, username: 'tbeck', password: 'pHR68Db.Pw.#', role: 'sm', name: 'T. Beck' },
+                { id: 3, username: 'gloshe', password: 'iT=hy!7G9NTf', role: 'director', name: 'G. Loshe' },
+                { id: 4, username: 'bflieder', password: '-W9m=>D_AUzF', role: 'sm', name: 'B. Flieder' },
+                { id: 5, username: 'cclark', password: 'iJ+va7>Df}#@', role: 'sm', name: 'C. Clark' },
+                { id: 6, username: 'ljulien', password: ';3y2Paz9£9?m', role: 'sm', name: 'L. Julien' },
+                { id: 7, username: 'hflowers', password: 'i£08um?B51.x', role: 'sm', name: 'H. Flowers' },
+                { id: 8, username: 'nwalker', password: '9^1~R7C*QVdV', role: 'sm', name: 'N. Walker' },
+                { id: 9, username: 'apate', password: 'y~D+V3R-37Wt', role: 'actor', name: 'A. Pate' },
+                { id: 10, username: 'cbeck', password: 'G?5sLRCkZYCg', role: 'actor', name: 'C. Beck' },
+                { id: 11, username: 'sjulien', password: '#0Y57gk*b?Jq', role: 'actor', name: 'S. Julien' },
+                { id: 12, username: 'agipson', password: 'c!?xGW2JvB:2', role: 'actor', name: 'A. Gipson' },
+                { id: 13, username: 'owyatt', password: '9vq-B#4q]}>.', role: 'actor', name: 'O. Wyatt' },
+                { id: 14, username: 'swyatt', password: 'B?2jjtvNqtq_', role: 'actor', name: 'S. Wyatt' },
+                { id: 15, username: 'afry', password: '5Mxc,kQpd,!T', role: 'actor', name: 'A. Fry' },
+                { id: 16, username: 'rromero', password: '=4A*pq+xQq:!', role: 'actor', name: 'R. Romero' },
+                { id: 17, username: 'gromero', password: 'j.dab8,6X_m2', role: 'actor', name: 'G. Romero' },
+                { id: 18, username: 'adalton', password: 'N.K#K9K.F60W', role: 'actor', name: 'A. Dalton' },
+                { id: 19, username: 'ajones', password: 'RbvA*EjQ_i1}', role: 'actor', name: 'A. Jones' },
+                { id: 20, username: 'afooter', password: '3g0w]*Lt>~]D', role: 'actor', name: 'A. Footer' }, // Tech as actor role for viewing
+                { id: 21, username: 'acollins', password: 'MU?#03xg.GQw', role: 'actor', name: 'A. Collins' },
+                { id: 22, username: 'achasteen', password: '1k#VK*b~!yWA', role: 'actor', name: 'A. Chasteen' },
+                { id: 23, username: 'agibson', password: '64KmMFCb>C.y', role: 'actor', name: 'A. Gibson' },
+                { id: 24, username: 'aaslin', password: 'YMDke#Pj23sV', role: 'actor', name: 'A. Aslin' }, // Tech as actor role for viewing
+                { id: 25, username: 'abobo', password: '=#.C_R.CLu1C', role: 'actor', name: 'A. Bobo' },
+                { id: 26, username: 'adavis', password: '5T,xB0U9?%M*', role: 'actor', name: 'A. Davis' },
+                { id: 27, username: 'bfrazier', password: ']r)i]-]%6*1v', role: 'actor', name: 'B. Frazier' },
+                { id: 28, username: 'bdavis', password: 'h)~3c4^@9oow', role: 'actor', name: 'B. Davis' }, // Tech as actor role for viewing
+                { id: 29, username: 'bbenich', password: 'q!o)%+h@Fz7-', role: 'actor', name: 'B. Benich' },
+                { id: 30, username: 'brussel', password: 'wQnXbF1m)i=b', role: 'actor', name: 'B. Russel' },
+                { id: 31, username: 'cadcock', password: '1*4Y_Z*jzLBR', role: 'actor', name: 'C. Adcock' },
+                { id: 32, username: 'cdiaz', password: 'EJqJFWdcHE^0', role: 'actor', name: 'C. Diaz' },
+                { id: 33, username: 'csteadham', password: 'GAVX0G3=nvDE', role: 'actor', name: 'C. Steadham' },
+                { id: 34, username: 'ckeyes', password: ']wmu?L4!o_D_', role: 'actor', name: 'C. Keyes' },
+                { id: 35, username: 'cgaines', password: 'No%vozF1d44@', role: 'actor', name: 'C. Gaines' },
+                { id: 36, username: 'dmoore', password: 'dQX!yDw?K3qV', role: 'actor', name: 'D. Moore' },
+                { id: 37, username: 'emorsey', password: 'mDet9LFtP9F:', role: 'actor', name: 'E. Morsey' },
+                { id: 38, username: 'edorsey', password: 'M,RA>Yv%61pB', role: 'actor', name: 'E. Dorsey' },
+                { id: 39, username: 'esharp', password: 'ntggo}k}f0=+', role: 'actor', name: 'E. Sharp' },
+                { id: 40, username: 'ebudzilowski', password: 'c)em]MrM~%6r', role: 'actor', name: 'E. Budzilowski' },
+                { id: 41, username: 'hthompson', password: '5LYrGQGk>}}!', role: 'actor', name: 'H. Thompson' }, // Tech as actor role for viewing
+                { id: 42, username: 'iwilson', password: 'owJ*2#3Fs)-a', role: 'actor', name: 'I. Wilson' }, // Tech as actor role for viewing
+                { id: 43, username: 'jmoody', password: 'ipvzRL8->tq^', role: 'actor', name: 'J. Moody' },
+                { id: 44, username: 'jteague', password: '}E=UxduA7oh_', role: 'actor', name: 'J. Teague' },
+                { id: 45, username: 'jarcher', password: ',Te:6@8BA_r7', role: 'actor', name: 'J. Archer' },
+                { id: 46, username: 'jsamuelson', password: 'kv344oJxo4?3', role: 'actor', name: 'J. Samuelson' },
+                { id: 47, username: 'jpoydras', password: 'R9f%T)3b9~19', role: 'actor', name: 'J. Poydras' },
+                { id: 48, username: 'jwalker', password: 'fjcxfr~PMFC9', role: 'actor', name: 'J. Walker' },
+                { id: 49, username: 'ksterling', password: 'FLo_b+8TRRW_', role: 'actor', name: 'K. Sterling' },
+                { id: 50, username: 'kreading', password: ')rqa8yEDe2PE', role: 'actor', name: 'K. Reading' },
+                { id: 51, username: 'kbates', password: '8BP@Z2rNdP)v', role: 'actor', name: 'K. Bates' },
+                { id: 52, username: 'kringwood', password: '4gTKx.i*_Y:z', role: 'actor', name: 'K. Ringwood' },
+                { id: 53, username: 'losuna', password: '4gTKx.i*_Y:z', role: 'actor', name: 'L. Osuna' },
+                { id: 54, username: 'lponder', password: 'a.F^H2}+Lrtr', role: 'actor', name: 'L. Ponder' },
+                { id: 55, username: 'lsinglton', password: 'hZkXikzc0T~)', role: 'actor', name: 'L. Singleton' },
+                { id: 56, username: 'lbrown', password: '@g>63W-Y_sM@', role: 'actor', name: 'L. Brown' },
+                { id: 57, username: 'mderrick', password: 'bji656Dj,Fbv', role: 'actor', name: 'M. Derrick' },
+                { id: 58, username: 'grandmary', password: 'xWpsqQN2k=u1', role: 'director', name: 'Grandmary' },
+                { id: 59, username: 'msandoval', password: '*22N2p,3Yn+=', role: 'actor', name: 'M. Sandoval' },
+                { id: 60, username: 'maldridge', password: '5,6sQ@iGt:5?', role: 'actor', name: 'M. Aldridge' },
+                { id: 61, username: 'noliver', password: 'phrxGHh_3ovX', role: 'actor', name: 'N. Oliver' }, // Tech as actor role for viewing
+                { id: 62, username: 'phall', password: 'mkw>9D)@m~13', role: 'actor', name: 'P. Hall' },
+                { id: 63, username: 'rhardy', password: '^+bP>j0AW)4i', role: 'actor', name: 'R. Hardy' },
+                { id: 64, username: 'btoland', password: '>X-qw0f4zk6W', role: 'actor', name: 'B. Toland' },
+                { id: 65, username: 'rwilson', password: 'j~1QfR0LCY%y', role: 'actor', name: 'R. Wilson' },
+                { id: 66, username: 'soneal', password: '1yi~7.nef5CL', role: 'actor', name: 'S. ONeal' },
+                { id: 67, username: 'smartin', password: 'Pb}jK35#v]5f', role: 'actor', name: 'S. Martin' },
+                { id: 68, username: 'twashington', password: 'th5b*_Vq^D.+', role: 'actor', name: 'T. Washington' },
+                { id: 69, username: 'tclenny', password: '43-qE-7@BrWt', role: 'actor', name: 'T. Clenny' }, // Tech as actor role for viewing
+                { id: 70, username: 'vgriffin', password: 'X..b#06ipqAJ', role: 'actor', name: 'V. Griffin' },
+                { id: 71, username: 'xmils', password: 'm?98uxvM^18o', role: 'actor', name: 'X. Mils' }, // Tech as actor role for viewing
+                { id: 72, username: 'yji', password: 'g5T}QPUMM-e4', role: 'actor', name: 'Y. Ji' },
+            ],
+            actors: [
+                { id: 9, name: 'A. Pate', status: 'Absent', timestamp: null, groups: [] },
+                { id: 10, name: 'C. Beck', status: 'Absent', timestamp: null, groups: [] },
+                { id: 11, name: 'S. Julien', status: 'Absent', timestamp: null, groups: [] },
+                { id: 12, name: 'A. Gipson', status: 'Absent', timestamp: null, groups: [] },
+                { id: 13, name: 'O. Wyatt', status: 'Absent', timestamp: null, groups: [] },
+                { id: 14, name: 'S. Wyatt', status: 'Absent', timestamp: null, groups: [] },
+                { id: 15, name: 'A. Fry', status: 'Absent', timestamp: null, groups: [] },
+                { id: 16, name: 'R. Romero', status: 'Absent', timestamp: null, groups: [] },
+                { id: 17, name: 'G. Romero', status: 'Absent', timestamp: null, groups: [] },
+                { id: 18, name: 'A. Dalton', status: 'Absent', timestamp: null, groups: [] },
+                { id: 19, name: 'A. Jones', status: 'Absent', timestamp: null, groups: [] },
+                { id: 21, name: 'A. Collins', status: 'Absent', timestamp: null, groups: [] },
+                { id: 22, name: 'A. Chasteen', status: 'Absent', timestamp: null, groups: [] },
+                { id: 23, name: 'A. Gibson', status: 'Absent', timestamp: null, groups: [] },
+                { id: 25, name: 'A. Bobo', status: 'Absent', timestamp: null, groups: [] },
+                { id: 26, name: 'A. Davis', status: 'Absent', timestamp: null, groups: [] },
+                { id: 27, name: 'B. Frazier', status: 'Absent', timestamp: null, groups: [] },
+                { id: 29, name: 'B. Benich', status: 'Absent', timestamp: null, groups: [] },
+                { id: 30, name: 'B. Russel', status: 'Absent', timestamp: null, groups: [] },
+                { id: 31, name: 'C. Adcock', status: 'Absent', timestamp: null, groups: [] },
+                { id: 32, name: 'C. Diaz', status: 'Absent', timestamp: null, groups: [] },
+                { id: 33, name: 'C. Steadham', status: 'Absent', timestamp: null, groups: [] },
+                { id: 34, name: 'C. Keyes', status: 'Absent', timestamp: null, groups: [] },
+                { id: 35, name: 'C. Gaines', status: 'Absent', timestamp: null, groups: [] },
+                { id: 36, name: 'D. Moore', status: 'Absent', timestamp: null, groups: [] },
+                { id: 37, name: 'E. Morsey', status: 'Absent', timestamp: null, groups: [] },
+                { id: 38, name: 'E. Dorsey', status: 'Absent', timestamp: null, groups: [] },
+                { id: 39, name: 'E. Sharp', status: 'Absent', timestamp: null, groups: [] },
+                { id: 40, name: 'E. Budzilowski', status: 'Absent', timestamp: null, groups: [] },
+                { id: 43, name: 'J. Moody', status: 'Absent', timestamp: null, groups: [] },
+                { id: 44, name: 'J. Teague', status: 'Absent', timestamp: null, groups: [] },
+                { id: 45, name: 'J. Archer', status: 'Absent', timestamp: null, groups: [] },
+                { id: 46, name: 'J. Samuelson', status: 'Absent', timestamp: null, groups: [] },
+                { id: 47, name: 'J. Poydras', status: 'Absent', timestamp: null, groups: [] },
+                { id: 48, name: 'J. Walker', status: 'Absent', timestamp: null, groups: [] },
+                { id: 49, name: 'K. Sterling', status: 'Absent', timestamp: null, groups: [] },
+                { id: 50, name: 'K. Reading', status: 'Absent', timestamp: null, groups: [] },
+                { id: 51, name: 'K. Bates', status: 'Absent', timestamp: null, groups: [] },
+                { id: 52, name: 'K. Ringwood', status: 'Absent', timestamp: null, groups: [] },
+                { id: 53, name: 'L. Osuna', status: 'Absent', timestamp: null, groups: [] },
+                { id: 54, name: 'L. Ponder', status: 'Absent', timestamp: null, groups: [] },
+                { id: 55, name: 'L. Singleton', status: 'Absent', timestamp: null, groups: [] },
+                { id: 56, name: 'L. Brown', status: 'Absent', timestamp: null, groups: [] },
+                { id: 57, name: 'M. Derrick', status: 'Absent', timestamp: null, groups: [] },
+                { id: 59, name: 'M. Sandoval', status: 'Absent', timestamp: null, groups: [] },
+                { id: 60, name: 'M. Aldridge', status: 'Absent', timestamp: null, groups: [] },
+                { id: 62, name: 'P. Hall', status: 'Absent', timestamp: null, groups: [] },
+                { id: 63, name: 'R. Hardy', status: 'Absent', timestamp: null, groups: [] },
+                { id: 64, name: 'B. Toland', status: 'Absent', timestamp: null, groups: [] },
+                { id: 65, name: 'R. Wilson', status: 'Absent', timestamp: null, groups: [] },
+                { id: 66, name: 'S. ONeal', status: 'Absent', timestamp: null, groups: [] },
+                { id: 67, name: 'S. Martin', status: 'Absent', timestamp: null, groups: [] },
+                { id: 68, name: 'T. Washington', status: 'Absent', timestamp: null, groups: [] },
+                { id: 70, name: 'V. Griffin', status: 'Absent', timestamp: null, groups: [] },
+                { id: 72, name: 'Y. Ji', status: 'Absent', timestamp: null, groups: [] },
+            ],
+            groups: {
+                'full-cast': 'Full Cast',
+                'leads': 'Leads',
+                'ensemble': 'Ensemble',
+                'dancers': 'Dancers',
+                'sopranos': 'Sopranos',
+                'altos': 'Altos',
+                'tenors': 'Tenors',
+                'baritones': 'Baritones'
+            },
+            announcements: [
+                { id: 1, title: 'Welcome to the Production!', content: 'We are so excited to get started. Please check the call board daily for updates. Scripts are available for pickup from the SM station.', author: 'The Director' },
+                { id: 2, title: 'Costume Fittings Schedule', content: 'Fittings will be held this Wednesday. Please sign up for a time slot on the sheet posted on the physical call board.', author: 'Stage Manager' },
+            ],
+            calls: [
+                 { id: 1, date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['All Actors'] },
+            ],
+            behaviorNotes: [
+                { id: 1, title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.' },
+                { id: 2, title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!' },
+            ],
+            itemToDelete: { type: null, id: null }
+        };
+
+        // --- RENDER FUNCTIONS ---
+        function renderAttendance() {
+            const list = document.getElementById('attendance-list');
+            list.innerHTML = '';
+            const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+
+            state.actors.forEach(actor => {
+                const isPresent = actor.status === 'Present';
+                const statusClass = isPresent ? 'text-green-400' : 'text-red-400';
+                
+                let actionButton = '';
+                if (canEdit) {
+                    const buttonClass = isPresent ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500';
+                    actionButton = `<button onclick="toggleAttendance(${actor.id})" class="text-white font-bold py-1 px-3 rounded-md text-sm transition ${buttonClass}">
+                        ${isPresent ? 'Mark Absent' : 'Mark Present'}
+                    </button>`;
+                }
+
+                const actorEl = document.createElement('div');
+                actorEl.className = 'flex justify-between items-center bg-gray-700 p-3 rounded-lg';
+                actorEl.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${actor.name}</p>
+                        <p class="text-xs ${statusClass}">${actor.status} ${actor.timestamp ? `(${actor.timestamp})` : ''}</p>
+                    </div>
+                    ${actionButton}
+                `;
+                list.appendChild(actorEl);
+            });
+        }
+        
+        function renderAnnouncements() {
+            const list = document.getElementById('announcement-list');
+            list.innerHTML = '';
+            const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+            
+            [...state.announcements].reverse().forEach(ann => {
+                const editButtons = canEdit ? `
+                    <div class="absolute top-2 right-2 flex gap-2">
+                        <button onclick="openAnnouncementModal(${ann.id})" class="text-gray-400 hover:text-white transition">✏️</button>
+                        <button onclick="confirmDelete('announcement', ${ann.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                    </div>
+                ` : '';
+
+                const annEl = document.createElement('div');
+                annEl.className = 'bg-gray-700 p-4 rounded-lg relative';
+                annEl.innerHTML = `
+                    ${editButtons}
+                    <h3 class="font-bold text-lg text-amber-200">${ann.title}</h3>
+                    <p class="text-sm text-gray-400 mb-2">Posted by: ${ann.author}</p>
+                    <p class="text-gray-300 whitespace-pre-wrap">${ann.content}</p>
+                `;
+                list.appendChild(annEl);
+            });
+        }
+        
+        function renderCalls() {
+            const list = document.getElementById('call-list');
+            list.innerHTML = '';
+             const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+
+            [...state.calls].reverse().forEach(call => {
+                 const editButtons = canEdit ? `
+                    <div class="absolute top-2 right-2 flex gap-2">
+                        <button onclick="openCallModal(${call.id})" class="text-gray-400 hover:text-white transition">✏️</button>
+                        <button onclick="confirmDelete('call', ${call.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                    </div>
+                ` : '';
+
+                const callEl = document.createElement('div');
+                callEl.className = 'bg-gray-700 p-4 rounded-lg relative';
+                const callDate = new Date(call.date + 'T00:00:00'); // Ensure date is parsed correctly
+                const formattedDate = callDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+                const formattedTime = new Date(`1970-01-01T${call.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                callEl.innerHTML = `
+                    ${editButtons}
+                    <h3 class="font-bold text-2xl">${formattedTime}</h3>
+                    <p class="text-sm font-semibold text-amber-200">${formattedDate}</p>
+                    <p class="text-md text-gray-300 mb-2">${call.location}</p>
+                    <p class="text-sm text-gray-400 mb-3">${call.notes}</p>
+                    <div class="border-t border-gray-600 pt-2">
+                        <p class="text-xs text-gray-400 font-bold uppercase">Called:</p>
+                        <p class="text-xs text-gray-300">${call.called.join(', ')}</p>
+                    </div>
+                `;
+                list.appendChild(callEl);
+            });
+        }
+
+        function renderBehaviorNotes() {
+            const list = document.getElementById('behavior-list');
+            list.innerHTML = '';
+            [...state.behaviorNotes].reverse().forEach(note => {
+                const noteEl = document.createElement('div');
+                noteEl.className = 'bg-gray-700 p-4 rounded-lg';
+                noteEl.innerHTML = `
+                    <h3 class="font-bold text-lg text-amber-200">${note.title}</h3>
+                    <p class="text-gray-300">${note.description}</p>
+                `;
+                list.appendChild(noteEl);
+            });
+        }
+
+        function renderAll() {
+            renderAttendance();
+            renderAnnouncements();
+            renderCalls();
+            renderBehaviorNotes();
+        }
+
+        // --- ACTIONS ---
+        function toggleAttendance(actorId) {
+            const actor = state.actors.find(a => a.id === actorId);
+            if(actor) {
+                if (actor.status === 'Present') {
+                    actor.status = 'Absent';
+                    actor.timestamp = null;
+                } else {
+                    actor.status = 'Present';
+                    actor.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+                renderAttendance();
+            }
+        }
+
+        document.getElementById('announcement-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('announcement-id').value;
+            const title = document.getElementById('announcement-title').value;
+            const content = document.getElementById('announcement-content').value;
+            
+            if (id) { // Editing existing
+                const ann = state.announcements.find(a => a.id == id);
+                ann.title = title;
+                ann.content = content;
+            } else { // Creating new
+                const author = state.currentUser.role === 'director' ? 'The Director' : 'Stage Manager';
+                const newAnnouncement = { id: Date.now(), title, content, author };
+                state.announcements.push(newAnnouncement);
+            }
+            renderAnnouncements();
+            closeModal('announcement-modal');
+        });
+
+        document.getElementById('call-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('call-id').value;
+            const calledActors = [];
+            document.querySelectorAll('#call-actors-list input[type="checkbox"]:checked').forEach(cb => {
+                // Find actor by ID from the checkbox value
+                const actor = state.actors.find(a => a.id == cb.value);
+                if (actor) {
+                    calledActors.push(actor.name);
+                }
+            });
+
+            const callData = {
+                date: document.getElementById('call-date').value,
+                time: document.getElementById('call-time').value,
+                location: document.getElementById('call-location').value,
+                notes: document.getElementById('call-notes').value,
+                called: calledActors.length > 0 ? calledActors : ['None specified']
+            };
+
+            if (id) { // Editing
+                const call = state.calls.find(c => c.id == id);
+                Object.assign(call, callData);
+            } else { // Creating
+                callData.id = Date.now();
+                state.calls.push(callData);
+            }
+            renderCalls();
+            closeModal('call-modal');
+        });
+
+        document.getElementById('behavior-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('behavior-title').value;
+            const description = document.getElementById('behavior-description').value;
+            const newNote = { id: Date.now(), title, description };
+            state.behaviorNotes.push(newNote);
+            renderBehaviorNotes();
+            closeModal('behavior-modal');
+            this.reset();
+        });
+
+        function confirmDelete(type, id) {
+            state.itemToDelete = { type, id };
+            openModal('delete-modal');
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+            const { type, id } = state.itemToDelete;
+            if (type === 'announcement') {
+                state.announcements = state.announcements.filter(a => a.id !== id);
+                renderAnnouncements();
+            } else if (type === 'call') {
+                state.calls = state.calls.filter(c => c.id !== id);
+                renderCalls();
+            }
+            closeModal('delete-modal');
+            state.itemToDelete = { type: null, id: null };
+        });
+
+        // --- AUTH & NAVIGATION ---
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.toLowerCase();
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('login-error');
+
+            const user = state.users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                state.currentUser = user;
+                loginError.textContent = '';
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('main-portal-view').style.display = 'flex';
+                setupPortal();
+            } else {
+                loginError.textContent = 'Invalid username or password.';
+            }
+        });
+        
+        function setupPortal() {
+            const user = state.currentUser;
+            const portalTitle = document.getElementById('portal-title');
+            const portalHeader = document.getElementById('portal-header');
+            const smDirectorBtns = document.querySelectorAll('.sm-director-btn');
+            const directorBtns = document.querySelectorAll('.director-btn');
+
+            document.getElementById('welcome-name').textContent = user.name;
+            portalHeader.className = 'p-4 shadow-lg flex justify-between items-center';
+            smDirectorBtns.forEach(b => b.classList.add('hidden'));
+            directorBtns.forEach(b => b.classList.add('hidden'));
+
+            if (user.role === 'actor') {
+                portalTitle.textContent = 'Actor Portal';
+                portalHeader.classList.add('bg-indigo-800');
+            } else if (user.role === 'sm') {
+                portalTitle.textContent = 'Stage Manager Portal';
+                portalHeader.classList.add('bg-teal-800');
+                smDirectorBtns.forEach(b => b.classList.remove('hidden'));
+            } else if (user.role === 'director') {
+                portalTitle.textContent = 'Director Portal';
+                portalHeader.classList.add('bg-rose-800');
+                smDirectorBtns.forEach(b => b.classList.remove('hidden'));
+                directorBtns.forEach(b => b.classList.remove('hidden'));
+            }
+            renderAll();
+        }
+
+        function logout() {
+            state.currentUser = null;
+            document.getElementById('main-portal-view').style.display = 'none';
+            document.getElementById('login-view').style.display = 'flex';
+            document.getElementById('login-form').reset();
+        }
+
+        // --- MODAL CONTROLS ---
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.replace('hidden', 'flex');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.replace('flex', 'hidden');
+        }
+
+        function openAnnouncementModal(id = null) {
+            const form = document.getElementById('announcement-form');
+            form.reset();
+            const modalTitle = document.getElementById('announcement-modal-title');
+            if (id) {
+                const ann = state.announcements.find(a => a.id === id);
+                modalTitle.textContent = "Edit Announcement";
+                document.getElementById('announcement-id').value = ann.id;
+                document.getElementById('announcement-title').value = ann.title;
+                document.getElementById('announcement-content').value = ann.content;
+            } else {
+                modalTitle.textContent = "New Announcement";
+                document.getElementById('announcement-id').value = '';
+            }
+            openModal('announcement-modal');
+        }
+        
+        function openCallModal(id = null) {
+            const form = document.getElementById('call-form');
+            form.reset();
+            const modalTitle = document.getElementById('call-modal-title');
+            populateActorCheckboxes();
+
+            if(id) {
+                const call = state.calls.find(c => c.id === id);
+                modalTitle.textContent = "Edit Call";
+                document.getElementById('call-id').value = call.id;
+                document.getElementById('call-date').value = call.date;
+                document.getElementById('call-time').value = call.time;
+                document.getElementById('call-location').value = call.location;
+                document.getElementById('call-notes').value = call.notes;
+                
+                // Check the boxes for actors who are called
+                const calledActorIds = state.actors.filter(a => call.called.includes(a.name)).map(a => a.id);
+                document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
+                    if(calledActorIds.includes(parseInt(cb.value))) {
+                        cb.checked = true;
+                    }
+                });
+            } else {
+                modalTitle.textContent = "New Call";
+                document.getElementById('call-id').value = '';
+                document.getElementById('call-date').valueAsDate = new Date(); // Default to today
+            }
+            openModal('call-modal');
+        }
+
+        function populateActorCheckboxes() {
+            const list = document.getElementById('call-actors-list');
+            list.innerHTML = '';
+            // Add group selectors
+            Object.keys(state.groups).forEach(key => {
+                const groupEl = document.createElement('div');
+                groupEl.innerHTML = `<label class="flex items-center space-x-2 font-bold text-amber-200">
+                    <input type="checkbox" onchange="selectGroup(event, '${key}')" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-500 focus:ring-indigo-600">
+                    <span>${state.groups[key]}</span>
+                </label>`;
+                list.appendChild(groupEl);
+            });
+             list.innerHTML += `<hr class="border-gray-600 my-2">`;
+            // Add individual actors
+            state.actors.forEach(actor => {
+                const actorEl = document.createElement('div');
+                actorEl.innerHTML = `<label class="flex items-center space-x-2">
+                    <input type="checkbox" name="actor" value="${actor.id}" data-groups="${actor.groups.join(' ')}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-500 focus:ring-indigo-600">
+                    <span>${actor.name}</span>
+                </label>`;
+                list.appendChild(actorEl);
+            });
+        }
+
+        function selectGroup(event, groupKey) {
+            const actorCheckboxes = document.querySelectorAll('#call-actors-list input[name="actor"]');
+            const shouldBeChecked = event.target.checked;
+            if (groupKey === 'full-cast') {
+                actorCheckboxes.forEach(cb => cb.checked = shouldBeChecked);
+            } else {
+                actorCheckboxes.forEach(cb => {
+                    if (cb.dataset.groups.includes(groupKey)) {
+                        cb.checked = shouldBeChecked;
+                    }
+                });
+            }
+        }
+
+        // Close modal on escape key press
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal('announcement-modal');
+                closeModal('call-modal');
+                closeModal('behavior-modal');
+                closeModal('delete-modal');
+            }
+        });
+
+    </script>
 </body>
 </html>
+
