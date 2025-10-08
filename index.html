@@ -930,25 +930,25 @@
                 state.actors = snapshot.docs.map(doc => ({ ...doc.data(), id: parseInt(doc.id) }));
                 renderAttendance();
                 populateBehaviorSubjectDropdown();
-            }));
+            }, (error) => console.error("Actor listener error:", error) ));
 
             const qAnnouncements = query(collection(db, `artifacts/${appId}/public/data/announcements`));
             state.unsubscribe.push(onSnapshot(qAnnouncements, (snapshot) => {
                 state.announcements = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 renderAnnouncements();
-            }));
+            }, (error) => console.error("Announcement listener error:", error) ));
             
             const qCalls = query(collection(db, `artifacts/${appId}/public/data/calls`));
             state.unsubscribe.push(onSnapshot(qCalls, (snapshot) => {
                 state.calls = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 activateCheckInCodes(); // This will re-render calls and check-in
-            }));
+            }, (error) => console.error("Call listener error:", error) ));
             
             const qBehavior = query(collection(db, `artifacts/${appId}/public/data/behaviorNotes`));
             state.unsubscribe.push(onSnapshot(qBehavior, (snapshot) => {
                 state.behaviorNotes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 renderBehaviorNotes();
-            }));
+            }, (error) => console.error("Behavior listener error:", error) ));
             
             // Listener for groups
             const groupsRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
@@ -956,7 +956,7 @@
                 if (doc.exists()) {
                     state.groups = doc.data();
                 }
-            }));
+            }, (error) => console.error("Groups listener error:", error) ));
         }
 
         // --- MODAL CONTROLS ---
@@ -1228,9 +1228,9 @@
                 } else {
                     const isDirector = initialData.users.find(u => u.username === username && u.password === password && u.role === 'director');
                     if (isDirector) {
-                         const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
-                         const actorsSnapshot = await getDocs(actorsCollectionRef);
-                         if(actorsSnapshot.empty){
+                         const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+                         const configSnap = await getDoc(configRef);
+                         if(!configSnap.exists()){
                              document.getElementById('login-view').classList.replace('flex', 'hidden');
                              document.getElementById('main-portal-view').style.display = 'flex';
                              state.currentUser = isDirector;
@@ -1244,14 +1244,17 @@
                 }
             });
 
+            const loadingTimeout = setTimeout(() => {
+                document.getElementById('loading-text').textContent = 'Connection is slow... Please wait or check network.';
+            }, 5000);
+
             onAuthStateChanged(auth, async (user) => {
+                clearTimeout(loadingTimeout);
                 if (user) {
                     document.getElementById('loading-text').textContent = 'Ready for Sign-in...';
                     document.getElementById('loading-view').style.display = 'none';
                     document.getElementById('login-view').classList.replace('hidden', 'flex');
                 } else {
-                    // This block will run if signOut is ever called, or if the session is invalidated.
-                    // For now, we rely on anonymous auth to persist.
                     signInAnonymously(auth).catch(error => {
                         console.error("Anonymous sign-in failed: ", error);
                         document.getElementById('loading-text').textContent = "Connection Failed. Please refresh.";
