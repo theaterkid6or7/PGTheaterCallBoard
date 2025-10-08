@@ -200,6 +200,33 @@
         </div>
     </div>
 
+    <!-- Attendance Status Modal -->
+    <div id="attendance-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4">
+            <h3 id="attendance-modal-title" class="text-xl font-bold mb-4">Update Attendance</h3>
+            <form id="attendance-form">
+                <input type="hidden" id="attendance-actor-id">
+                <div class="mb-3">
+                    <label for="attendance-status" class="block text-sm font-medium text-gray-400 mb-1">Status</label>
+                    <select id="attendance-status" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Late">Late</option>
+                        <option value="Early Departure">Early Departure</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                     <label for="attendance-reason" class="block text-sm font-medium text-gray-400 mb-1">Reason (Optional)</label>
+                    <input id="attendance-reason" type="text" placeholder="e.g., Sick, Traffic, Doctor's Appt" class="w-full bg-gray-700 text-white p-2 rounded">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('attendance-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         // --- DATABASE ---
@@ -280,71 +307,70 @@
                 { id: 72, username: 'yji', password: 'g5T}QPUMM-e4', role: 'actor', name: 'Y. Ji' },
             ],
             actors: [
-                { id: 9, name: 'A. Pate', status: 'Absent', timestamp: null, groups: [] },
-                { id: 10, name: 'C. Beck', status: 'Absent', timestamp: null, groups: [] },
-                { id: 11, name: 'S. Julien', status: 'Absent', timestamp: null, groups: [] },
-                { id: 12, name: 'A. Gipson', status: 'Absent', timestamp: null, groups: [] },
-                { id: 13, name: 'O. Wyatt', status: 'Absent', timestamp: null, groups: [] },
-                { id: 14, name: 'S. Wyatt', status: 'Absent', timestamp: null, groups: [] },
-                { id: 15, name: 'A. Fry', status: 'Absent', timestamp: null, groups: [] },
-                { id: 16, name: 'R. Romero', status: 'Absent', timestamp: null, groups: [] },
-                { id: 17, name: 'G. Romero', status: 'Absent', timestamp: null, groups: [] },
-                { id: 18, name: 'A. Dalton', status: 'Absent', timestamp: null, groups: [] },
-                { id: 19, name: 'A. Jones', status: 'Absent', timestamp: null, groups: [] },
-                { id: 21, name: 'A. Collins', status: 'Absent', timestamp: null, groups: [] },
-                { id: 22, name: 'A. Chasteen', status: 'Absent', timestamp: null, groups: [] },
-                { id: 23, name: 'A. Gibson', status: 'Absent', timestamp: null, groups: [] },
-                { id: 25, name: 'A. Bobo', status: 'Absent', timestamp: null, groups: [] },
-                { id: 26, name: 'A. Davis', status: 'Absent', timestamp: null, groups: [] },
-                { id: 27, name: 'B. Frazier', status: 'Absent', timestamp: null, groups: [] },
-                { id: 29, name: 'B. Benich', status: 'Absent', timestamp: null, groups: [] },
-                { id: 30, name: 'B. Russel', status: 'Absent', timestamp: null, groups: [] },
-                { id: 31, name: 'C. Adcock', status: 'Absent', timestamp: null, groups: [] },
-                { id: 32, name: 'C. Diaz', status: 'Absent', timestamp: null, groups: [] },
-                { id: 33, name: 'C. Steadham', status: 'Absent', timestamp: null, groups: [] },
-                { id: 34, name: 'C. Keyes', status: 'Absent', timestamp: null, groups: [] },
-                { id: 35, name: 'C. Gaines', status: 'Absent', timestamp: null, groups: [] },
-                { id: 36, name: 'D. Moore', status: 'Absent', timestamp: null, groups: [] },
-                { id: 37, name: 'E. Morsey', status: 'Absent', timestamp: null, groups: [] },
-                { id: 38, name: 'E. Dorsey', status: 'Absent', timestamp: null, groups: [] },
-                { id: 39, name: 'E. Sharp', status: 'Absent', timestamp: null, groups: [] },
-                { id: 40, name: 'E. Budzilowski', status: 'Absent', timestamp: null, groups: [] },
-                { id: 43, name: 'J. Moody', status: 'Absent', timestamp: null, groups: [] },
-                { id: 44, name: 'J. Teague', status: 'Absent', timestamp: null, groups: [] },
-                { id: 45, name: 'J. Archer', status: 'Absent', timestamp: null, groups: [] },
-                { id: 46, name: 'J. Samuelson', status: 'Absent', timestamp: null, groups: [] },
-                { id: 47, name: 'J. Poydras', status: 'Absent', timestamp: null, groups: [] },
-                { id: 48, name: 'J. Walker', status: 'Absent', timestamp: null, groups: [] },
-                { id: 49, name: 'K. Sterling', status: 'Absent', timestamp: null, groups: [] },
-                { id: 50, name: 'K. Reading', status: 'Absent', timestamp: null, groups: [] },
-                { id: 51, name: 'K. Bates', status: 'Absent', timestamp: null, groups: [] },
-                { id: 52, name: 'K. Ringwood', status: 'Absent', timestamp: null, groups: [] },
-                { id: 53, name: 'L. Osuna', status: 'Absent', timestamp: null, groups: [] },
-                { id: 54, name: 'L. Ponder', status: 'Absent', timestamp: null, groups: [] },
-                { id: 55, name: 'L. Singleton', status: 'Absent', timestamp: null, groups: [] },
-                { id: 56, name: 'L. Brown', status: 'Absent', timestamp: null, groups: [] },
-                { id: 57, name: 'M. Derrick', status: 'Absent', timestamp: null, groups: [] },
-                { id: 59, name: 'M. Sandoval', status: 'Absent', timestamp: null, groups: [] },
-                { id: 60, name: 'M. Aldridge', status: 'Absent', timestamp: null, groups: [] },
-                { id: 62, name: 'P. Hall', status: 'Absent', timestamp: null, groups: [] },
-                { id: 63, name: 'R. Hardy', status: 'Absent', timestamp: null, groups: [] },
-                { id: 64, name: 'B. Toland', status: 'Absent', timestamp: null, groups: [] },
-                { id: 65, name: 'R. Wilson', status: 'Absent', timestamp: null, groups: [] },
-                { id: 66, name: 'S. ONeal', status: 'Absent', timestamp: null, groups: [] },
-                { id: 67, name: 'S. Martin', status: 'Absent', timestamp: null, groups: [] },
-                { id: 68, name: 'T. Washington', status: 'Absent', timestamp: null, groups: [] },
-                { id: 70, name: 'V. Griffin', status: 'Absent', timestamp: null, groups: [] },
-                { id: 72, name: 'Y. Ji', status: 'Absent', timestamp: null, groups: [] },
+                { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 10, name: 'C. Beck', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 11, name: 'S. Julien', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 12, name: 'A. Gipson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 13, name: 'O. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 14, name: 'S. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 15, name: 'A. Fry', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 16, name: 'R. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
+                { id: 17, name: 'G. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories', 'dance-ens'] },
+                { id: 18, name: 'A. Dalton', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 19, name: 'A. Jones', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 21, name: 'A. Collins', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 22, name: 'A. Chasteen', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 23, name: 'A. Gibson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 25, name: 'A. Bobo', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 26, name: 'A. Davis', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 27, name: 'B. Frazier', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 29, name: 'B. Benich', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'dance-ens'] },
+                { id: 30, name: 'B. Russel', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 31, name: 'C. Adcock', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 32, name: 'C. Diaz', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 33, name: 'C. Steadham', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories', 'dance-ens'] },
+                { id: 34, name: 'C. Keyes', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 35, name: 'C. Gaines', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 36, name: 'D. Moore', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 37, name: 'E. Morsey', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 38, name: 'E. Dorsey', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 39, name: 'E. Sharp', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 40, name: 'E. Budzilowski', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 41, name: 'H. Thompson', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 43, name: 'J. Moody', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 44, name: 'J. Teague', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 45, name: 'J. Archer', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 46, name: 'J. Samuelson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 47, name: 'J. Poydras', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 48, name: 'J. Walker', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 49, name: 'K. Sterling', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 50, name: 'K. Reading', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 51, name: 'K. Bates', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 52, name: 'K. Ringwood', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 53, name: 'L. Osuna', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 54, name: 'L. Ponder', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 55, name: 'L. Singleton', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 56, name: 'L. Brown', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 57, name: 'M. Derrick', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 59, name: 'M. Sandoval', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 60, name: 'M. Aldridge', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 61, name: 'N. Oliver', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
+                { id: 62, name: 'P. Hall', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 63, name: 'R. Hardy', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 64, name: 'B. Toland', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 65, name: 'R. Wilson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 66, name: 'S. ONeal', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 67, name: 'S. Martin', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 68, name: 'T. Washington', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 70, name: 'V. Griffin', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
+                { id: 72, name: 'Y. Ji', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
             ],
             groups: {
                 'full-cast': 'Full Cast',
-                'leads': 'Leads',
-                'ensemble': 'Ensemble',
-                'dancers': 'Dancers',
-                'sopranos': 'Sopranos',
-                'altos': 'Altos',
-                'tenors': 'Tenors',
-                'baritones': 'Baritones'
+                'childrens-ens': 'Childrens Ens',
+                'adult-ens': 'Adult Ens',
+                'stories': 'Stories',
+                'dance-ens': 'Dance Ens'
             },
             announcements: [
                 { id: 1, title: 'Welcome to the Production!', content: 'We are so excited to get started. Please check the call board daily for updates. Scripts are available for pickup from the SM station.', author: 'The Director' },
@@ -367,25 +393,47 @@
             const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
 
             state.actors.forEach(actor => {
-                const isPresent = actor.status === 'Present';
-                const statusClass = isPresent ? 'text-green-400' : 'text-red-400';
-                
-                let actionButton = '';
-                if (canEdit) {
-                    const buttonClass = isPresent ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500';
-                    actionButton = `<button onclick="toggleAttendance(${actor.id})" class="text-white font-bold py-1 px-3 rounded-md text-sm transition ${buttonClass}">
-                        ${isPresent ? 'Mark Absent' : 'Mark Present'}
-                    </button>`;
+                let statusClass = '';
+                let statusText = actor.status;
+                switch (actor.status) {
+                    case 'Present':
+                        statusClass = 'text-green-400';
+                        break;
+                    case 'Absent':
+                        statusClass = 'text-red-400';
+                        break;
+                    case 'Late':
+                        statusClass = 'text-yellow-400';
+                        break;
+                    case 'Early Departure':
+                        statusClass = 'text-orange-400';
+                        break;
+                    default:
+                        statusClass = 'text-gray-400';
+                }
+
+                if (actor.statusReason) {
+                    statusText += ` (${actor.statusReason})`;
                 }
 
                 const actorEl = document.createElement('div');
                 actorEl.className = 'flex justify-between items-center bg-gray-700 p-3 rounded-lg';
+                if (canEdit) {
+                    actorEl.classList.add('cursor-pointer', 'hover:bg-gray-600', 'transition');
+                    actorEl.setAttribute('onclick', `openAttendanceModal(${actor.id})`);
+                }
+                
+                let timestampText = '';
+                if (actor.timestamp && actor.status !== 'Early Departure') {
+                     timestampText = ` (at ${actor.timestamp})`;
+                }
+                
                 actorEl.innerHTML = `
                     <div>
                         <p class="font-semibold">${actor.name}</p>
-                        <p class="text-xs ${statusClass}">${actor.status} ${actor.timestamp ? `(${actor.timestamp})` : ''}</p>
+                        <p class="text-xs ${statusClass}">${statusText}${timestampText}</p>
                     </div>
-                    ${actionButton}
+                    ${canEdit ? `<div class="text-gray-400">✏️</div>` : ''}
                 `;
                 list.appendChild(actorEl);
             });
@@ -493,19 +541,44 @@
         }
 
         // --- ACTIONS ---
-        function toggleAttendance(actorId) {
+        function openAttendanceModal(actorId) {
             const actor = state.actors.find(a => a.id === actorId);
-            if(actor) {
-                if (actor.status === 'Present') {
-                    actor.status = 'Absent';
-                    actor.timestamp = null;
-                } else {
-                    actor.status = 'Present';
+            if (!actor) return;
+            
+            document.getElementById('attendance-modal-title').textContent = `Update ${actor.name}`;
+            document.getElementById('attendance-actor-id').value = actor.id;
+            document.getElementById('attendance-status').value = actor.status;
+            document.getElementById('attendance-reason').value = actor.statusReason;
+            openModal('attendance-modal');
+        }
+
+        document.getElementById('attendance-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const actorId = parseInt(document.getElementById('attendance-actor-id').value);
+            const actor = state.actors.find(a => a.id === actorId);
+            if (!actor) return;
+
+            const newStatus = document.getElementById('attendance-status').value;
+            const newReason = document.getElementById('attendance-reason').value;
+
+            actor.status = newStatus;
+            actor.statusReason = newReason;
+
+            if (newStatus === 'Present' || newStatus === 'Late') {
+                if (!actor.timestamp) {
                     actor.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 }
-                renderAttendance();
+            } else { // Absent or Early Departure
+                actor.timestamp = null;
             }
-        }
+            
+            if (newStatus === 'Present') {
+                actor.statusReason = ''; // Clear reason if present
+            }
+
+            renderAttendance();
+            closeModal('attendance-modal');
+        });
 
         document.getElementById('announcement-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -772,6 +845,7 @@
                 closeModal('call-modal');
                 closeModal('behavior-modal');
                 closeModal('delete-modal');
+                closeModal('attendance-modal');
             }
         });
 
