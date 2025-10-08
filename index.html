@@ -50,24 +50,16 @@
 
     <div id="app-container" class="h-full flex flex-col">
         
-        <!-- Loading View -->
-        <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
-            <div class="text-center p-8">
-                <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p id="loading-text" class="text-gray-400">Connecting to Server...</p>
-            </div>
-        </div>
-        
         <!-- Login View -->
-        <div id="login-view" class="hidden items-center justify-center min-h-screen bg-black">
+        <div id="login-view" class="flex items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
                 <h1 class="font-display text-4xl text-gold-300 mb-2">Welcome</h1>
-                <p id="login-status" class="text-gray-400 mb-6">Please sign in to continue.</p>
+                <p id="login-status" class="text-gray-400 mb-6">Connecting...</p>
                 <form id="login-form">
                     <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
                     <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
                     <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
+                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105" disabled>Sign In</button>
                 </form>
                  <div id="first-time-setup-prompt" class="hidden mt-4 text-sm text-gray-400">
                     <p>If this is the first time running the app, please log in as a Director to initialize the database.</p>
@@ -103,7 +95,10 @@
                         <div id="attendance-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-2xl font-bold font-display text-gold-300">Attendance</h2>
-                                <button onclick="exportAttendanceReport()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-1 px-3 rounded-lg transition text-sm">Export</button>
+                                <div>
+                                    <button onclick="openResetModal()" class="hidden sm-director-btn bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-lg transition text-sm mr-2">Reset</button>
+                                    <button onclick="exportAttendanceReport()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-1 px-3 rounded-lg transition text-sm">Export</button>
+                                </div>
                             </div>
                             <div id="attendance-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
                                 <!-- Actor list will be rendered here -->
@@ -257,6 +252,18 @@
                     <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center border border-gray-700">
+            <h3 class="text-xl font-bold mb-4 text-yellow-400">Reset Daily Attendance?</h3>
+            <p class="text-gray-400 mb-6">This will mark all actors as "Absent" and clear any existing statuses. This is intended for the start of a new rehearsal day.</p>
+            <div class="flex justify-center gap-4">
+                <button type="button" onclick="closeModal('reset-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">Cancel</button>
+                <button id="confirm-reset-btn" type="button" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded">Confirm Reset</button>
+            </div>
         </div>
     </div>
     
