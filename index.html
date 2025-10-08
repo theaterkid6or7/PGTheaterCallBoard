@@ -109,7 +109,7 @@
                         <div id="behavior-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-2xl font-bold font-display text-amber-300">Behavior Notes</h2>
-                                <button onclick="openModal('behavior-modal')" class="hidden director-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                                <button onclick="openBehaviorModal()" class="hidden sm-director-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
                             </div>
                             <div id="behavior-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
                                 <!-- Behavior notes will be rendered here -->
@@ -172,11 +172,17 @@
         <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md m-4">
             <h3 class="text-xl font-bold mb-4">New Behavior Note</h3>
             <form id="behavior-form">
-                <input id="behavior-title" type="text" placeholder="Subject (e.g., Actor Name or Topic)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
+                 <div class="mb-3">
+                    <label for="behavior-subject" class="block text-sm font-medium text-gray-400 mb-1">Subject</label>
+                    <select id="behavior-subject" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                        <!-- Actor options will be generated here -->
+                    </select>
+                </div>
+                <input id="behavior-title" type="text" placeholder="Note Title (e.g., Lateness, Unprepared)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
                 <textarea id="behavior-description" placeholder="Description of behavior..." rows="3" class="w-full bg-gray-700 text-white p-2 rounded mb-4" required></textarea>
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="closeModal('behavior-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded">Post</button>
+                    <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded">Log Note</button>
                 </div>
             </form>
         </div>
@@ -348,8 +354,8 @@
                  { id: 1, date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['All Actors'] },
             ],
             behaviorNotes: [
-                { id: 1, title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.' },
-                { id: 2, title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!' },
+                { id: 1, title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.', authorId: 1, authorName: 'L. Newton', subjectId: 'general', subjectName: 'General' },
+                { id: 2, title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!', authorId: 2, authorName: 'T. Beck', subjectId: 'general', subjectName: 'General' },
             ],
             itemToDelete: { type: null, id: null }
         };
@@ -447,11 +453,32 @@
         function renderBehaviorNotes() {
             const list = document.getElementById('behavior-list');
             list.innerHTML = '';
-            [...state.behaviorNotes].reverse().forEach(note => {
+            const user = state.currentUser;
+            let notesToDisplay = [];
+
+            if (user.role === 'director' || user.role === 'sm') {
+                notesToDisplay = state.behaviorNotes;
+            } else if (user.role === 'actor') {
+                notesToDisplay = state.behaviorNotes.filter(note => note.subjectId === user.id || note.subjectId === 'general');
+            }
+            
+            if (notesToDisplay.length === 0) {
+                 list.innerHTML = `<p class="text-gray-500 text-center">No behavior notes to display.</p>`;
+                 return;
+            }
+
+            [...notesToDisplay].reverse().forEach(note => {
                 const noteEl = document.createElement('div');
                 noteEl.className = 'bg-gray-700 p-4 rounded-lg';
+                
+                let subjectLine = '';
+                if (user.role === 'director' || user.role === 'sm') {
+                    subjectLine = `<p class="text-sm text-gray-400 mb-2">Subject: ${note.subjectName} | Logged by: ${note.authorName}</p>`;
+                }
+
                 noteEl.innerHTML = `
                     <h3 class="font-bold text-lg text-amber-200">${note.title}</h3>
+                    ${subjectLine}
                     <p class="text-gray-300">${note.description}</p>
                 `;
                 list.appendChild(noteEl);
@@ -532,9 +559,25 @@
 
         document.getElementById('behavior-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            const title = document.getElementById('behavior-title').value;
-            const description = document.getElementById('behavior-description').value;
-            const newNote = { id: Date.now(), title, description };
+            
+            const subjectIdRaw = document.getElementById('behavior-subject').value;
+            const subjectId = subjectIdRaw === 'general' ? 'general' : parseInt(subjectIdRaw);
+            
+            let subjectName = 'General';
+            if(subjectId !== 'general') {
+                const subjectUser = state.users.find(u => u.id === subjectId);
+                subjectName = subjectUser.name;
+            }
+
+            const newNote = {
+                id: Date.now(),
+                title: document.getElementById('behavior-title').value,
+                description: document.getElementById('behavior-description').value,
+                authorId: state.currentUser.id,
+                authorName: state.currentUser.name,
+                subjectId: subjectId,
+                subjectName: subjectName
+            };
             state.behaviorNotes.push(newNote);
             renderBehaviorNotes();
             closeModal('behavior-modal');
@@ -584,12 +627,10 @@
             const portalTitle = document.getElementById('portal-title');
             const portalHeader = document.getElementById('portal-header');
             const smDirectorBtns = document.querySelectorAll('.sm-director-btn');
-            const directorBtns = document.querySelectorAll('.director-btn');
-
+            
             document.getElementById('welcome-name').textContent = user.name;
             portalHeader.className = 'p-4 shadow-lg flex justify-between items-center';
             smDirectorBtns.forEach(b => b.classList.add('hidden'));
-            directorBtns.forEach(b => b.classList.add('hidden'));
 
             if (user.role === 'actor') {
                 portalTitle.textContent = 'Actor Portal';
@@ -602,7 +643,6 @@
                 portalTitle.textContent = 'Director Portal';
                 portalHeader.classList.add('bg-rose-800');
                 smDirectorBtns.forEach(b => b.classList.remove('hidden'));
-                directorBtns.forEach(b => b.classList.remove('hidden'));
             }
             renderAll();
         }
@@ -655,7 +695,6 @@
                 document.getElementById('call-location').value = call.location;
                 document.getElementById('call-notes').value = call.notes;
                 
-                // Check the boxes for actors who are called
                 const calledActorIds = state.actors.filter(a => call.called.includes(a.name)).map(a => a.id);
                 document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
                     if(calledActorIds.includes(parseInt(cb.value))) {
@@ -668,6 +707,24 @@
                 document.getElementById('call-date').valueAsDate = new Date(); // Default to today
             }
             openModal('call-modal');
+        }
+
+        function openBehaviorModal() {
+            const form = document.getElementById('behavior-form');
+            form.reset();
+            populateBehaviorSubjectDropdown();
+            openModal('behavior-modal');
+        }
+
+        function populateBehaviorSubjectDropdown() {
+            const select = document.getElementById('behavior-subject');
+            select.innerHTML = '<option value="general">General Note</option>';
+            state.users.filter(u => u.role === 'actor').forEach(actor => {
+                const option = document.createElement('option');
+                option.value = actor.id;
+                option.textContent = actor.name;
+                select.appendChild(option);
+            });
         }
 
         function populateActorCheckboxes() {
