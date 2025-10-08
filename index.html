@@ -67,7 +67,7 @@
                     <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
                     <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
                     <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
+                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105" disabled>Sign In</button>
                 </form>
                  <div id="first-time-setup-prompt" class="hidden mt-4 text-sm text-gray-400">
                     <p>If this is the first time running the app, please log in as a Director to initialize the database.</p>
@@ -1252,21 +1252,29 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                const authPromise = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
-                    ? signInWithCustomToken(auth, __initial_auth_token)
-                    : signInAnonymously(auth);
-
-                authPromise.then(() => {
-                    console.log("Firebase auth session established.");
-                    document.getElementById('loading-view').style.display = 'none';
-                    document.getElementById('login-view').classList.replace('hidden', 'flex');
-                    document.getElementById('login-status').textContent = 'Please sign in to continue.';
-                    document.querySelector('#login-form button').disabled = false;
-                }).catch(error => {
-                     console.error("Firebase auth failed during startup: ", error);
-                     const loadingText = document.getElementById('loading-text');
-                     if(loadingText) loadingText.textContent = "Connection Failed. Please refresh.";
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                         // This block runs once a user session is established (either custom token or anonymous)
+                        console.log("Firebase auth session established.");
+                        document.getElementById('loading-view').style.display = 'none';
+                        document.getElementById('login-view').classList.replace('hidden', 'flex');
+                        document.getElementById('login-status').textContent = 'Please sign in to continue.';
+                        document.querySelector('#login-form button').disabled = false;
+                    } else {
+                        // This should ideally not be hit if anonymous sign in works
+                        console.log("No user session. Attempting anonymous sign-in.");
+                        await signInAnonymously(auth);
+                    }
                 });
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                     signInWithCustomToken(auth, __initial_auth_token).catch(error => {
+                        console.error("Custom token sign-in failed, trying anonymous.", error);
+                        signInAnonymously(auth);
+                     });
+                } else {
+                    signInAnonymously(auth);
+                }
                 
                 document.getElementById('login-form').addEventListener('submit', async (e) => {
                     e.preventDefault();
@@ -1312,10 +1320,9 @@
                 });
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                const loginStatus = document.getElementById('login-status');
-                if(loginStatus) {
-                    loginStatus.textContent = "Initialization Failed. Please refresh.";
-                    loginStatus.classList.add('text-red-400');
+                const loadingView = document.getElementById('loading-view');
+                if (loadingView) {
+                     loadingView.innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not initialize the application. Please check the configuration.</p></div>`;
                 }
             }
         });
