@@ -54,7 +54,7 @@
         <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8">
                 <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p id="loading-text" class="text-gray-400">Connecting to Server...</p>
+                <p id="loading-text" class="text-gray-400">Loading...</p>
             </div>
         </div>
         
@@ -540,13 +540,16 @@
             let callsToRender = state.calls;
             if (user?.role === 'actor') {
                 callsToRender = state.calls.filter(call => {
-                    const calledGroups = call.called.filter(c => state.groups[c.toLowerCase().replace(/\s/g, '-')]);
-                    const userInCalledGroup = calledGroups.some(groupName => {
-                        const groupKey = groupName.toLowerCase().replace(/\s/g, '-');
-                        return user.groups.includes(groupKey);
-                    });
+                    if (!call.called || call.called.length === 0) return false;
+                    const userActor = state.actors.find(a => a.id === user.id);
+                    if (!userActor) return false;
 
-                    return call.called.includes(user.name) || call.called.includes('Full Cast') || userInCalledGroup;
+                    const userInCalledGroup = call.called.some(groupName => {
+                         const groupKey = Object.keys(state.groups).find(key => state.groups[key] === groupName);
+                         return groupKey && userActor.groups.includes(groupKey);
+                    });
+                    
+                    return call.called.includes(userActor.name) || call.called.includes('Full Cast') || userInCalledGroup;
                 });
             }
 
@@ -1214,12 +1217,15 @@
                 const loginError = document.getElementById('login-error');
                 loginError.textContent = '';
                 
-                // Client-side user lookup first
                 const localUser = initialData.users.find(u => u.username === username && u.password === password);
 
                 if (localUser) {
                     state.currentUser = localUser;
                     
+                    document.getElementById('login-view').classList.replace('flex', 'hidden');
+                    document.getElementById('main-portal-view').style.display = 'flex';
+                    
+                    // Check for first-time setup *after* a successful director login
                     if (localUser.role === 'director') {
                         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                         const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
@@ -1230,14 +1236,14 @@
                                 document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
                             }
                         } catch (error) {
-                             loginError.textContent = 'Permission denied. Cannot check setup status.';
                              console.error("Permission error checking for setup:", error);
-                             return;
+                             // Show a less disruptive error in the UI
+                             const banner = document.getElementById('first-time-setup-banner');
+                             banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
+                             banner.classList.remove('hidden');
                         }
                     }
 
-                    document.getElementById('login-view').classList.replace('flex', 'hidden');
-                    document.getElementById('main-portal-view').style.display = 'flex';
                     setupPortal();
                     attachListeners();
                     if (checkInInterval) clearInterval(checkInInterval);
@@ -1248,27 +1254,19 @@
                 }
             });
 
-            const loadingTimeout = setTimeout(() => {
-                document.getElementById('loading-text').textContent = 'Connection is slow... Please wait or check network.';
-            }, 5000);
-
-            onAuthStateChanged(auth, async (user) => {
-                clearTimeout(loadingTimeout);
-                if (user) {
-                    document.getElementById('loading-text').textContent = 'Ready for Sign-in...';
-                    document.getElementById('loading-view').style.display = 'none';
-                    document.getElementById('login-view').classList.replace('hidden', 'flex');
-                } else {
-                    signInAnonymously(auth).catch(error => {
-                        console.error("Anonymous sign-in failed: ", error);
-                        document.getElementById('loading-text').textContent = "Connection Failed. Please refresh.";
-                    });
-                }
+            // Immediately try to get an anonymous session in the background
+            signInAnonymously(auth).then(() => {
+                // Once we have a session, we can show the login screen
+                document.getElementById('loading-view').style.display = 'none';
+                document.getElementById('login-view').classList.replace('hidden', 'flex');
+            }).catch(error => {
+                console.error("Anonymous sign-in failed: ", error);
+                document.getElementById('loading-text').textContent = "Connection Failed. Please refresh.";
             });
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
-            document.getElementById('loading-view').innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not connect to the database. Please check the configuration.</p></div>`;
+            document.getElementById('loading-view').innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not initialize the application. Please check the configuration.</p></div>`;
         }
 
     </script>
