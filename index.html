@@ -263,7 +263,7 @@
     <script type="module">
         // --- FIREBASE SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, writeBatch, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- LOCAL DATA & STATE ---
@@ -1211,13 +1211,16 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                // This is the key change: ensure anonymous sign-in happens, then show login.
-                signInAnonymously(auth).then(() => {
-                    console.log("Anonymous auth session established.");
+                const authPromise = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
+                    ? signInWithCustomToken(auth, __initial_auth_token)
+                    : signInAnonymously(auth);
+
+                authPromise.then(() => {
+                    console.log("Firebase auth session established.");
                     document.getElementById('loading-view').style.display = 'none';
                     document.getElementById('login-view').classList.replace('hidden', 'flex');
                 }).catch(error => {
-                     console.error("Anonymous sign-in failed during startup: ", error);
+                     console.error("Firebase auth failed during startup: ", error);
                      const loadingText = document.getElementById('loading-text');
                      if(loadingText) loadingText.textContent = "Connection Failed. Please refresh.";
                 });
