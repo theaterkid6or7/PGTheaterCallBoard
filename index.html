@@ -49,15 +49,15 @@
 <body class="text-gray-200 h-full overflow-hidden">
 
     <div id="app-container" class="h-full flex flex-col">
-
+        
         <!-- Loading View -->
         <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8">
                 <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p id="loading-text" class="text-gray-400">Loading...</p>
+                <p id="loading-text" class="text-gray-400">Connecting to Server...</p>
             </div>
         </div>
-        
+
         <!-- Login View -->
         <div id="login-view" class="hidden items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
@@ -1189,87 +1189,95 @@
         }
 
         // --- APP INITIALIZATION ---
-        try {
-            let firebaseConfig;
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                firebaseConfig = JSON.parse(__firebase_config);
-            } else {
-                console.warn("Firebase environment configuration not found. Using fallback credentials.");
-                firebaseConfig = {
-                    apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
-                    authDomain: "pg-theater-call-board.firebaseapp.com",
-                    projectId: "pg-theater-call-board",
-                    storageBucket: "pg-theater-call-board.firebasestorage.app",
-                    messagingSenderId: "850857757575",
-                    appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
-                    measurementId: "G-ELWLH31ZCJ"
-                };
-            }
-
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            
-            document.getElementById('login-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const loginError = document.getElementById('login-error');
-                loginError.textContent = '';
-                
-                const localUser = initialData.users.find(u => u.username === username && u.password === password);
-
-                if (localUser) {
-                    state.currentUser = localUser;
-                    
-                    document.getElementById('login-view').classList.replace('flex', 'hidden');
-                    document.getElementById('main-portal-view').style.display = 'flex';
-                    
-                    // Check for first-time setup *after* a successful director login
-                    if (localUser.role === 'director') {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-                        try {
-                            const configSnap = await getDoc(configRef);
-                            if (!configSnap.exists()) {
-                                document.getElementById('first-time-setup-banner').classList.remove('hidden');
-                                document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                            }
-                        } catch (error) {
-                             console.error("Permission error checking for setup:", error);
-                             // Show a less disruptive error in the UI
-                             const banner = document.getElementById('first-time-setup-banner');
-                             banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
-                             banner.classList.remove('hidden');
-                        }
-                    }
-
-                    setupPortal();
-                    attachListeners();
-                    if (checkInInterval) clearInterval(checkInInterval);
-                    checkInInterval = setInterval(activateCheckInCodes, 60000);
-
+        (async () => {
+            try {
+                let firebaseConfig;
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    firebaseConfig = JSON.parse(__firebase_config);
                 } else {
-                    loginError.textContent = 'Invalid username or password.';
+                    console.warn("Firebase environment configuration not found. Using fallback credentials.");
+                    firebaseConfig = {
+                        apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
+                        authDomain: "pg-theater-call-board.firebaseapp.com",
+                        projectId: "pg-theater-call-board",
+                        storageBucket: "pg-theater-call-board.firebasestorage.app",
+                        messagingSenderId: "850857757575",
+                        appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
+                        measurementId: "G-ELWLH31ZCJ"
+                    };
                 }
-            });
 
-            // Immediately try to get an anonymous session in the background
-            signInAnonymously(auth).then(() => {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Sign in anonymously in the background. This is required for Firestore access.
+                await signInAnonymously(auth);
+                console.log("Anonymous auth session established.");
+
                 // Once we have a session, we can show the login screen
                 document.getElementById('loading-view').style.display = 'none';
                 document.getElementById('login-view').classList.replace('hidden', 'flex');
-            }).catch(error => {
-                console.error("Anonymous sign-in failed: ", error);
-                document.getElementById('loading-text').textContent = "Connection Failed. Please refresh.";
-            });
+                
+                document.getElementById('login-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    const loginError = document.getElementById('login-error');
+                    loginError.textContent = '';
+                    
+                    const localUser = initialData.users.find(u => u.username === username && u.password === password);
 
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-            document.getElementById('loading-view').innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not initialize the application. Please check the configuration.</p></div>`;
-        }
+                    if (localUser) {
+                        state.currentUser = localUser;
+                        
+                        document.getElementById('login-view').classList.replace('flex', 'hidden');
+                        document.getElementById('main-portal-view').style.display = 'flex';
+                        
+                        // Check for first-time setup *after* a successful director login
+                        if (localUser.role === 'director') {
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+                            try {
+                                const configSnap = await getDoc(configRef);
+                                if (!configSnap.exists()) {
+                                    document.getElementById('first-time-setup-banner').classList.remove('hidden');
+                                    document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
+                                }
+                            } catch (error) {
+                                 console.error("Permission error checking for setup:", error);
+                                 const banner = document.getElementById('first-time-setup-banner');
+                                 banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
+                                 banner.classList.remove('hidden');
+                            }
+                        }
+
+                        setupPortal();
+                        attachListeners();
+                        if (checkInInterval) clearInterval(checkInInterval);
+                        checkInInterval = setInterval(activateCheckInCodes, 60000);
+
+                    } else {
+                        loginError.textContent = 'Invalid username or password.';
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization or anonymous sign-in failed:", error);
+                const loadingView = document.getElementById('loading-view');
+                const loginView = document.getElementById('login-view');
+                
+                if (loadingView && loadingView.style.display !== 'none') {
+                    loadingView.innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not connect to the server. Please check the configuration and your network connection.</p></div>`;
+                } else if (loginView) {
+                    const loginError = document.getElementById('login-error');
+                    if(loginError) loginError.textContent = 'Connection to server failed.';
+                }
+            }
+        })();
 
     </script>
 </body>
 </html>
+
 
