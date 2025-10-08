@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
+            background-color: #000000; /* Black */
         }
         .font-display {
             font-family: 'Playfair Display', serif;
@@ -24,15 +24,26 @@
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #1f2937; /* bg-gray-800 */
+            background: #1f2937;
         }
         ::-webkit-scrollbar-thumb {
-            background: #4b5563; /* bg-gray-600 */
+            background: #ca8a04; /* gold-500 */
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; /* bg-gray-500 */
+            background: #eab308; /* gold-400 */
         }
+
+        .bg-gray-900 { background-color: #0a0a0a; }
+        .bg-gray-800 { background-color: #1c1c1c; }
+        .bg-gray-700 { background-color: #2d2d2d; }
+        .bg-gray-600 { background-color: #444444; }
+
+        .text-gold-300 { color: #fde047; } /* yellow-300 for a bright gold */
+        .text-gold-400 { color: #facc15; } /* yellow-400 */
+        .bg-gold-600 { background-color: #ca8a04; } /* amber-600 */
+        .hover\:bg-gold-500:hover { background-color: #eab308; } /* amber-500 */
+
     </style>
 </head>
 <body class="text-gray-200 h-full overflow-hidden">
@@ -40,15 +51,15 @@
     <div id="app-container" class="h-full flex flex-col">
 
         <!-- Login View -->
-        <div id="login-view" class="flex items-center justify-center min-h-screen bg-gray-900">
-            <div class="text-center p-8 bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full">
-                <h1 class="font-display text-4xl text-amber-300 mb-2">Virtual Call Board</h1>
+        <div id="login-view" class="flex items-center justify-center min-h-screen bg-black">
+            <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
+                <h1 class="font-display text-4xl text-gold-300 mb-2">Virtual Call Board</h1>
                 <p class="text-gray-400 mb-6">Please sign in to continue.</p>
                 <form id="login-form">
-                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-700 text-white p-3 rounded mb-3 text-center" required>
-                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-700 text-white p-3 rounded mb-4 text-center" required>
+                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
+                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
                     <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
+                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
                 </form>
             </div>
         </div>
@@ -56,9 +67,9 @@
         <!-- Main Portal View -->
         <div id="main-portal-view" class="hidden h-full flex flex-col">
             <!-- Header -->
-            <header id="portal-header" class="p-4 shadow-lg flex justify-between items-center">
+            <header id="portal-header" class="p-4 shadow-lg flex justify-between items-center border-b border-gray-700">
                 <div>
-                    <h1 class="font-display text-3xl" id="portal-title">Portal</h1>
+                    <h1 class="font-display text-3xl text-gold-300" id="portal-title">Portal</h1>
                     <p class="text-sm text-gray-400">Welcome, <span id="welcome-name">User</span>!</p>
                 </div>
                 <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Log Out</button>
@@ -66,14 +77,16 @@
 
             <!-- Main Content -->
             <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div id="actor-check-in-section" class="hidden mb-6"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     <!-- Left Column: Attendance & Calls -->
                     <div class="lg:col-span-1 space-y-6">
                         <!-- Attendance Section -->
-                        <div id="attendance-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <div id="attendance-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-amber-300">Attendance</h2>
+                                <h2 class="text-2xl font-bold font-display text-gold-300">Attendance</h2>
+                                <button onclick="exportAttendanceReport()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-1 px-3 rounded-lg transition text-sm">Export</button>
                             </div>
                             <div id="attendance-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
                                 <!-- Actor list will be rendered here -->
@@ -81,10 +94,10 @@
                         </div>
 
                         <!-- Calls Section -->
-                        <div id="calls-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <div id="calls-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-amber-300">Daily Calls</h2>
-                                <button onclick="openCallModal()" class="hidden sm-director-btn bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                                <h2 class="text-2xl font-bold font-display text-gold-300">Daily Calls</h2>
+                                <button onclick="openCallModal()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
                             </div>
                             <div id="call-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
                                 <!-- Call items will be rendered here -->
@@ -95,10 +108,10 @@
                     <!-- Right Column: Announcements & Behavior -->
                     <div class="lg:col-span-2 space-y-6">
                         <!-- Announcements Section -->
-                        <div id="announcements-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <div id="announcements-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-amber-300">Announcements</h2>
-                                <button onclick="openAnnouncementModal()" class="hidden sm-director-btn bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                                <h2 class="text-2xl font-bold font-display text-gold-300">Announcements</h2>
+                                <button onclick="openAnnouncementModal()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
                             </div>
                             <div id="announcement-list" class="space-y-4 max-h-[40rem] overflow-y-auto pr-2">
                                 <!-- Announcements will be rendered here -->
@@ -106,10 +119,13 @@
                         </div>
 
                         <!-- Behavior Section -->
-                        <div id="behavior-section" class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <div id="behavior-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-amber-300">Behavior Notes</h2>
-                                <button onclick="openBehaviorModal()" class="hidden sm-director-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                                <h2 class="text-2xl font-bold font-display text-gold-300">Behavior Notes</h2>
+                                <div>
+                                    <button onclick="exportBehaviorReport()" class="hidden director-btn bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-lg transition text-sm mr-2">Export</button>
+                                    <button onclick="openBehaviorModal()" class="hidden sm-director-btn bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
+                                </div>
                             </div>
                             <div id="behavior-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
                                 <!-- Behavior notes will be rendered here -->
@@ -125,15 +141,15 @@
     <!-- Modals -->
     <!-- Add/Edit Announcement Modal -->
     <div id="announcement-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md m-4">
-            <h3 id="announcement-modal-title" class="text-xl font-bold mb-4">New Announcement</h3>
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-md m-4 border border-gray-700">
+            <h3 id="announcement-modal-title" class="text-xl font-bold mb-4 text-gold-300">New Announcement</h3>
             <form id="announcement-form">
                 <input type="hidden" id="announcement-id">
-                <input id="announcement-title" type="text" placeholder="Title" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
-                <textarea id="announcement-content" placeholder="Details..." rows="4" class="w-full bg-gray-700 text-white p-2 rounded mb-4" required></textarea>
+                <input id="announcement-title" type="text" placeholder="Title" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
+                <textarea id="announcement-content" placeholder="Details..." rows="4" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700" required></textarea>
                 <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('announcement-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">Post</button>
+                    <button type="button" onclick="closeModal('announcement-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Post</button>
                 </div>
             </form>
         </div>
@@ -141,27 +157,27 @@
 
     <!-- Add/Edit Call Modal -->
     <div id="call-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop overflow-y-auto py-10">
-        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-lg m-4">
-            <h3 id="call-modal-title" class="text-xl font-bold mb-4">New Call</h3>
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-lg m-4 border border-gray-700">
+            <h3 id="call-modal-title" class="text-xl font-bold mb-4 text-gold-300">New Call</h3>
             <form id="call-form">
                 <input type="hidden" id="call-id">
                 <div class="grid grid-cols-2 gap-4 mb-3">
-                    <input id="call-date" type="date" class="w-full bg-gray-700 text-white p-2 rounded" required>
-                    <input id="call-time" type="time" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                    <input id="call-date" type="date" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
+                    <input id="call-time" type="time" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
                 </div>
-                <input id="call-location" type="text" placeholder="Location (e.g., Main Stage)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
-                <textarea id="call-notes" placeholder="Notes (e.g., Full cast, warmups at 6:45)" rows="3" class="w-full bg-gray-700 text-white p-2 rounded mb-4"></textarea>
+                <input id="call-location" type="text" placeholder="Location (e.g., Main Stage)" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
+                <textarea id="call-notes" placeholder="Notes (e.g., Full cast, warmups at 6:45)" rows="3" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700"></textarea>
                 
                 <div class="mb-4">
                     <h4 class="font-bold mb-2">Who's Called?</h4>
-                    <div id="call-actors-list" class="max-h-48 overflow-y-auto bg-gray-700 p-3 rounded-lg space-y-2">
+                    <div id="call-actors-list" class="max-h-48 overflow-y-auto bg-gray-800 p-3 rounded-lg space-y-2 border border-gray-700">
                         <!-- Actor checkboxes will be generated here -->
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('call-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded">Save Call</button>
+                    <button type="button" onclick="closeModal('call-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Save Call</button>
                 </div>
             </form>
         </div>
@@ -169,20 +185,20 @@
 
     <!-- Add Behavior Modal -->
     <div id="behavior-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md m-4">
-            <h3 class="text-xl font-bold mb-4">New Behavior Note</h3>
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-md m-4 border border-gray-700">
+            <h3 class="text-xl font-bold mb-4 text-gold-300">New Behavior Note</h3>
             <form id="behavior-form">
                  <div class="mb-3">
                     <label for="behavior-subject" class="block text-sm font-medium text-gray-400 mb-1">Subject</label>
-                    <select id="behavior-subject" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                    <select id="behavior-subject" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
                         <!-- Actor options will be generated here -->
                     </select>
                 </div>
-                <input id="behavior-title" type="text" placeholder="Note Title (e.g., Lateness, Unprepared)" class="w-full bg-gray-700 text-white p-2 rounded mb-3" required>
-                <textarea id="behavior-description" placeholder="Description of behavior..." rows="3" class="w-full bg-gray-700 text-white p-2 rounded mb-4" required></textarea>
+                <input id="behavior-title" type="text" placeholder="Note Title (e.g., Lateness, Unprepared)" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
+                <textarea id="behavior-description" placeholder="Description of behavior..." rows="3" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700" required></textarea>
                 <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('behavior-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded">Log Note</button>
+                    <button type="button" onclick="closeModal('behavior-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded">Log Note</button>
                 </div>
             </form>
         </div>
@@ -190,11 +206,11 @@
     
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center">
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center border border-gray-700">
             <h3 class="text-xl font-bold mb-4">Are you sure?</h3>
             <p class="text-gray-400 mb-6">This action cannot be undone.</p>
             <div class="flex justify-center gap-4">
-                <button type="button" onclick="closeModal('delete-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded">Cancel</button>
+                <button type="button" onclick="closeModal('delete-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">Cancel</button>
                 <button id="confirm-delete-btn" type="button" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded">Delete</button>
             </div>
         </div>
@@ -202,13 +218,13 @@
 
     <!-- Attendance Status Modal -->
     <div id="attendance-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4">
-            <h3 id="attendance-modal-title" class="text-xl font-bold mb-4">Update Attendance</h3>
+        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 border border-gray-700">
+            <h3 id="attendance-modal-title" class="text-xl font-bold mb-4 text-gold-300">Update Attendance</h3>
             <form id="attendance-form">
                 <input type="hidden" id="attendance-actor-id">
                 <div class="mb-3">
                     <label for="attendance-status" class="block text-sm font-medium text-gray-400 mb-1">Status</label>
-                    <select id="attendance-status" class="w-full bg-gray-700 text-white p-2 rounded" required>
+                    <select id="attendance-status" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
                         <option value="Present">Present</option>
                         <option value="Absent">Absent</option>
                         <option value="Late">Late</option>
@@ -217,10 +233,10 @@
                 </div>
                 <div class="mb-4">
                      <label for="attendance-reason" class="block text-sm font-medium text-gray-400 mb-1">Reason (Optional)</label>
-                    <input id="attendance-reason" type="text" placeholder="e.g., Sick, Traffic, Doctor's Appt" class="w-full bg-gray-700 text-white p-2 rounded">
+                    <input id="attendance-reason" type="text" placeholder="e.g., Sick, Traffic, Doctor's Appt" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700">
                 </div>
                 <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('attendance-modal')" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="button" onclick="closeModal('attendance-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
                     <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded">Save</button>
                 </div>
             </form>
@@ -230,6 +246,8 @@
 
     <script>
         // --- DATABASE ---
+        let checkInInterval = null;
+
         const state = {
             currentUser: null,
             users: [
@@ -307,59 +325,58 @@
                 { id: 72, username: 'yji', password: 'g5T}QPUMM-e4', role: 'actor', name: 'Y. Ji' },
             ],
             actors: [
-                { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
                 { id: 10, name: 'C. Beck', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 11, name: 'S. Julien', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 11, name: 'S. Julien', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
                 { id: 12, name: 'A. Gipson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 13, name: 'O. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 13, name: 'O. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
                 { id: 14, name: 'S. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 15, name: 'A. Fry', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 16, name: 'R. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
                 { id: 17, name: 'G. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories', 'dance-ens'] },
                 { id: 18, name: 'A. Dalton', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 19, name: 'A. Jones', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 19, name: 'A. Jones', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
                 { id: 21, name: 'A. Collins', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 22, name: 'A. Chasteen', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 22, name: 'A. Chasteen', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
                 { id: 23, name: 'A. Gibson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 25, name: 'A. Bobo', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 26, name: 'A. Davis', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 27, name: 'B. Frazier', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 27, name: 'B. Frazier', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
                 { id: 29, name: 'B. Benich', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'dance-ens'] },
                 { id: 30, name: 'B. Russel', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 31, name: 'C. Adcock', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 31, name: 'C. Adcock', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
                 { id: 32, name: 'C. Diaz', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 33, name: 'C. Steadham', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories', 'dance-ens'] },
                 { id: 34, name: 'C. Keyes', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 35, name: 'C. Gaines', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 36, name: 'D. Moore', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 35, name: 'C. Gaines', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 36, name: 'D. Moore', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
                 { id: 37, name: 'E. Morsey', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
                 { id: 38, name: 'E. Dorsey', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 39, name: 'E. Sharp', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 40, name: 'E. Budzilowski', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 41, name: 'H. Thompson', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 41, name: 'H. Thompson', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
                 { id: 43, name: 'J. Moody', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 44, name: 'J. Teague', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 45, name: 'J. Archer', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 46, name: 'J. Samuelson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 44, name: 'J. Teague', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 45, name: 'J. Archer', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 46, name: 'J. Samuelson', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
                 { id: 47, name: 'J. Poydras', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 48, name: 'J. Walker', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 49, name: 'K. Sterling', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 49, name: 'K. Sterling', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
                 { id: 50, name: 'K. Reading', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 51, name: 'K. Bates', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 52, name: 'K. Ringwood', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 53, name: 'L. Osuna', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 54, name: 'L. Ponder', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 52, name: 'K. Ringwood', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
+                { id: 53, name: 'L. Osuna', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
+                { id: 54, name: 'L. Ponder', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
                 { id: 55, name: 'L. Singleton', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 56, name: 'L. Brown', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 56, name: 'L. Brown', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
                 { id: 57, name: 'M. Derrick', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
                 { id: 59, name: 'M. Sandoval', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 60, name: 'M. Aldridge', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 61, name: 'N. Oliver', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
-                { id: 62, name: 'P. Hall', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 63, name: 'R. Hardy', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 64, name: 'B. Toland', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 64, name: 'B. Toland', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
                 { id: 65, name: 'R. Wilson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 66, name: 'S. ONeal', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
+                { id: 66, name: 'S. ONeal', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens', 'stories'] },
                 { id: 67, name: 'S. Martin', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 68, name: 'T. Washington', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 70, name: 'V. Griffin', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
@@ -377,7 +394,8 @@
                 { id: 2, title: 'Costume Fittings Schedule', content: 'Fittings will be held this Wednesday. Please sign up for a time slot on the sheet posted on the physical call board.', author: 'Stage Manager' },
             ],
             calls: [
-                 { id: 1, date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['All Actors'] },
+                 { id: 1, date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['Full Cast'], checkInCode: null, codeActive: false },
+                 { id: 2, date: '2025-10-07', time: '19:30', location: 'Dance Studio', notes: 'Dance Ensemble choreography for Act 1.', called: ['Dance Ens'], checkInCode: null, codeActive: false },
             ],
             behaviorNotes: [
                 { id: 1, title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.', authorId: 1, authorName: 'L. Newton', subjectId: 'general', subjectName: 'General' },
@@ -391,8 +409,15 @@
             const list = document.getElementById('attendance-list');
             list.innerHTML = '';
             const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+            const isActor = state.currentUser.role === 'actor';
+            
+            let actorsToRender = state.actors;
+            if(isActor) {
+                actorsToRender = state.actors.filter(a => a.id === state.currentUser.id);
+            }
 
-            state.actors.forEach(actor => {
+
+            actorsToRender.forEach(actor => {
                 let statusClass = '';
                 let statusText = actor.status;
                 switch (actor.status) {
@@ -417,9 +442,9 @@
                 }
 
                 const actorEl = document.createElement('div');
-                actorEl.className = 'flex justify-between items-center bg-gray-700 p-3 rounded-lg';
+                actorEl.className = 'flex justify-between items-center bg-gray-800 p-3 rounded-lg';
                 if (canEdit) {
-                    actorEl.classList.add('cursor-pointer', 'hover:bg-gray-600', 'transition');
+                    actorEl.classList.add('cursor-pointer', 'hover:bg-gray-700', 'transition');
                     actorEl.setAttribute('onclick', `openAttendanceModal(${actor.id})`);
                 }
                 
@@ -453,10 +478,10 @@
                 ` : '';
 
                 const annEl = document.createElement('div');
-                annEl.className = 'bg-gray-700 p-4 rounded-lg relative';
+                annEl.className = 'bg-gray-800 p-4 rounded-lg relative';
                 annEl.innerHTML = `
                     ${editButtons}
-                    <h3 class="font-bold text-lg text-amber-200">${ann.title}</h3>
+                    <h3 class="font-bold text-lg text-gold-400">${ann.title}</h3>
                     <p class="text-sm text-gray-400 mb-2">Posted by: ${ann.author}</p>
                     <p class="text-gray-300 whitespace-pre-wrap">${ann.content}</p>
                 `;
@@ -467,10 +492,27 @@
         function renderCalls() {
             const list = document.getElementById('call-list');
             list.innerHTML = '';
-             const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+            const user = state.currentUser;
+            const canManage = user.role === 'sm' || user.role === 'director';
+            
+            let callsToRender = state.calls;
+            // Filter calls for actors
+            if (user.role === 'actor') {
+                const userActor = state.actors.find(a => a.id === user.id);
+                callsToRender = state.calls.filter(call => {
+                    const calledGroups = call.called.filter(c => state.groups[c.toLowerCase().replace(/\s/g, '-')]);
+                    const userInCalledGroup = calledGroups.some(groupName => {
+                        const groupKey = groupName.toLowerCase().replace(/\s/g, '-');
+                        return userActor.groups.includes(groupKey);
+                    });
 
-            [...state.calls].reverse().forEach(call => {
-                 const editButtons = canEdit ? `
+                    return call.called.includes(user.name) || call.called.includes('Full Cast') || userInCalledGroup;
+                });
+            }
+
+
+            [...callsToRender].reverse().forEach(call => {
+                 const editButtons = canManage ? `
                     <div class="absolute top-2 right-2 flex gap-2">
                         <button onclick="openCallModal(${call.id})" class="text-gray-400 hover:text-white transition">✏️</button>
                         <button onclick="confirmDelete('call', ${call.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
@@ -478,21 +520,35 @@
                 ` : '';
 
                 const callEl = document.createElement('div');
-                callEl.className = 'bg-gray-700 p-4 rounded-lg relative';
-                const callDate = new Date(call.date + 'T00:00:00'); // Ensure date is parsed correctly
+                callEl.className = 'bg-gray-800 p-4 rounded-lg relative';
+                const callDate = new Date(call.date + 'T00:00:00');
                 const formattedDate = callDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
                 const formattedTime = new Date(`1970-01-01T${call.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                let checkInSection = '';
+                if (canManage) {
+                    if (call.codeActive) {
+                        checkInSection = `
+                        <div class="mt-3 p-2 bg-gray-900 rounded-md text-center">
+                           <p class="text-sm text-gray-400">Check-in Code:</p>
+                           <p class="text-2xl font-bold tracking-widest text-gold-300">${call.checkInCode}</p>
+                        </div>`;
+                    } else {
+                        checkInSection = `<div class="mt-3"><button onclick="forceCode(${call.id})" class="w-full text-xs bg-gray-700 hover:bg-gray-600 p-2 rounded-md">Force Code</button></div>`;
+                    }
+                }
 
                 callEl.innerHTML = `
                     ${editButtons}
                     <h3 class="font-bold text-2xl">${formattedTime}</h3>
-                    <p class="text-sm font-semibold text-amber-200">${formattedDate}</p>
+                    <p class="text-sm font-semibold text-gold-400">${formattedDate}</p>
                     <p class="text-md text-gray-300 mb-2">${call.location}</p>
                     <p class="text-sm text-gray-400 mb-3">${call.notes}</p>
-                    <div class="border-t border-gray-600 pt-2">
+                    <div class="border-t border-gray-700 pt-2">
                         <p class="text-xs text-gray-400 font-bold uppercase">Called:</p>
                         <p class="text-xs text-gray-300">${call.called.join(', ')}</p>
                     </div>
+                    ${checkInSection}
                 `;
                 list.appendChild(callEl);
             });
@@ -516,8 +572,11 @@
             }
 
             [...notesToDisplay].reverse().forEach(note => {
+                const deleteButton = user.role === 'director' ? `
+                    <button onclick="confirmDelete('behavior', ${note.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                ` : '';
                 const noteEl = document.createElement('div');
-                noteEl.className = 'bg-gray-700 p-4 rounded-lg';
+                noteEl.className = 'bg-gray-800 p-4 rounded-lg relative';
                 
                 let subjectLine = '';
                 if (user.role === 'director' || user.role === 'sm') {
@@ -525,19 +584,50 @@
                 }
 
                 noteEl.innerHTML = `
-                    <h3 class="font-bold text-lg text-amber-200">${note.title}</h3>
+                    <div class="absolute top-2 right-2 flex gap-2">${deleteButton}</div>
+                    <h3 class="font-bold text-lg text-gold-400">${note.title}</h3>
                     ${subjectLine}
                     <p class="text-gray-300">${note.description}</p>
                 `;
                 list.appendChild(noteEl);
             });
         }
+        
+        function renderActorCheckInSection() {
+            const container = document.getElementById('actor-check-in-section');
+            if (state.currentUser.role !== 'actor') {
+                container.innerHTML = '';
+                container.classList.add('hidden');
+                return;
+            }
+            
+            const activeCall = state.calls.find(c => c.codeActive);
+            if (activeCall) {
+                container.innerHTML = `
+                <div class="bg-gray-900 border border-gold-600/50 p-4 rounded-lg text-center">
+                    <h3 class="font-bold text-lg text-gold-300 mb-2">Rehearsal Check-In is Active</h3>
+                    <form id="actor-check-in-form" class="flex justify-center gap-2">
+                        <input id="check-in-code-input" type="text" placeholder="4-Digit Code" class="w-40 bg-gray-800 text-white p-2 rounded text-center tracking-widest text-lg border border-gray-700" required maxlength="4">
+                        <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Check In</button>
+                    </form>
+                    <p id="check-in-message" class="text-sm h-4 mt-2"></p>
+                </div>
+                `;
+                container.classList.remove('hidden');
+                document.getElementById('actor-check-in-form').addEventListener('submit', handleActorCheckIn);
+            } else {
+                 container.innerHTML = '';
+                 container.classList.add('hidden');
+            }
+        }
+
 
         function renderAll() {
             renderAttendance();
             renderAnnouncements();
             renderCalls();
             renderBehaviorNotes();
+            renderActorCheckInSection();
         }
 
         // --- ACTIONS ---
@@ -602,13 +692,9 @@
         document.getElementById('call-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const id = document.getElementById('call-id').value;
-            const calledActors = [];
+            const calledActorsAndGroups = [];
             document.querySelectorAll('#call-actors-list input[type="checkbox"]:checked').forEach(cb => {
-                // Find actor by ID from the checkbox value
-                const actor = state.actors.find(a => a.id == cb.value);
-                if (actor) {
-                    calledActors.push(actor.name);
-                }
+                calledActorsAndGroups.push(cb.dataset.name);
             });
 
             const callData = {
@@ -616,7 +702,7 @@
                 time: document.getElementById('call-time').value,
                 location: document.getElementById('call-location').value,
                 notes: document.getElementById('call-notes').value,
-                called: calledActors.length > 0 ? calledActors : ['None specified']
+                called: calledActorsAndGroups.length > 0 ? calledActorsAndGroups : ['None specified']
             };
 
             if (id) { // Editing
@@ -624,6 +710,8 @@
                 Object.assign(call, callData);
             } else { // Creating
                 callData.id = Date.now();
+                callData.checkInCode = null;
+                callData.codeActive = false;
                 state.calls.push(callData);
             }
             renderCalls();
@@ -670,6 +758,9 @@
             } else if (type === 'call') {
                 state.calls = state.calls.filter(c => c.id !== id);
                 renderCalls();
+            } else if (type === 'behavior') {
+                state.behaviorNotes = state.behaviorNotes.filter(b => b.id !== id);
+                renderBehaviorNotes();
             }
             closeModal('delete-modal');
             state.itemToDelete = { type: null, id: null };
@@ -700,23 +791,30 @@
             const portalTitle = document.getElementById('portal-title');
             const portalHeader = document.getElementById('portal-header');
             const smDirectorBtns = document.querySelectorAll('.sm-director-btn');
+            const directorBtns = document.querySelectorAll('.director-btn');
             
             document.getElementById('welcome-name').textContent = user.name;
-            portalHeader.className = 'p-4 shadow-lg flex justify-between items-center';
+            portalHeader.className = 'p-4 shadow-lg flex justify-between items-center border-b border-gray-700';
             smDirectorBtns.forEach(b => b.classList.add('hidden'));
+            directorBtns.forEach(b => b.classList.add('hidden'));
 
             if (user.role === 'actor') {
                 portalTitle.textContent = 'Actor Portal';
-                portalHeader.classList.add('bg-indigo-800');
+                portalHeader.classList.add('bg-gray-900');
             } else if (user.role === 'sm') {
                 portalTitle.textContent = 'Stage Manager Portal';
-                portalHeader.classList.add('bg-teal-800');
+                portalHeader.classList.add('bg-gray-900');
                 smDirectorBtns.forEach(b => b.classList.remove('hidden'));
             } else if (user.role === 'director') {
                 portalTitle.textContent = 'Director Portal';
-                portalHeader.classList.add('bg-rose-800');
+                portalHeader.classList.add('bg-gray-900');
                 smDirectorBtns.forEach(b => b.classList.remove('hidden'));
+                directorBtns.forEach(b => b.classList.remove('hidden'));
             }
+
+            if (checkInInterval) clearInterval(checkInInterval);
+            checkInInterval = setInterval(activateCheckInCodes, 60000); // Check every minute
+            activateCheckInCodes(); // Run once immediately on login
             renderAll();
         }
 
@@ -725,6 +823,7 @@
             document.getElementById('main-portal-view').style.display = 'none';
             document.getElementById('login-view').style.display = 'flex';
             document.getElementById('login-form').reset();
+            if (checkInInterval) clearInterval(checkInInterval);
         }
 
         // --- MODAL CONTROLS ---
@@ -768,9 +867,8 @@
                 document.getElementById('call-location').value = call.location;
                 document.getElementById('call-notes').value = call.notes;
                 
-                const calledActorIds = state.actors.filter(a => call.called.includes(a.name)).map(a => a.id);
                 document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
-                    if(calledActorIds.includes(parseInt(cb.value))) {
+                    if(call.called.includes(cb.dataset.name)) {
                         cb.checked = true;
                     }
                 });
@@ -792,7 +890,7 @@
         function populateBehaviorSubjectDropdown() {
             const select = document.getElementById('behavior-subject');
             select.innerHTML = '<option value="general">General Note</option>';
-            state.users.filter(u => u.role === 'actor').forEach(actor => {
+            state.actors.forEach(actor => {
                 const option = document.createElement('option');
                 option.value = actor.id;
                 option.textContent = actor.name;
@@ -806,18 +904,18 @@
             // Add group selectors
             Object.keys(state.groups).forEach(key => {
                 const groupEl = document.createElement('div');
-                groupEl.innerHTML = `<label class="flex items-center space-x-2 font-bold text-amber-200">
-                    <input type="checkbox" onchange="selectGroup(event, '${key}')" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-500 focus:ring-indigo-600">
+                groupEl.innerHTML = `<label class="flex items-center space-x-2 font-bold text-gold-400">
+                    <input type="checkbox" onchange="selectGroup(event, '${key}')" data-name="${state.groups[key]}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-gold-600 focus:ring-gold-600">
                     <span>${state.groups[key]}</span>
                 </label>`;
                 list.appendChild(groupEl);
             });
-             list.innerHTML += `<hr class="border-gray-600 my-2">`;
+             list.innerHTML += `<hr class="border-gray-700 my-2">`;
             // Add individual actors
             state.actors.forEach(actor => {
                 const actorEl = document.createElement('div');
                 actorEl.innerHTML = `<label class="flex items-center space-x-2">
-                    <input type="checkbox" name="actor" value="${actor.id}" data-groups="${actor.groups.join(' ')}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-500 focus:ring-indigo-600">
+                    <input type="checkbox" name="actor" value="${actor.id}" data-name="${actor.name}" data-groups="${actor.groups.join(' ')}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-gold-600 focus:ring-gold-600">
                     <span>${actor.name}</span>
                 </label>`;
                 list.appendChild(actorEl);
@@ -848,6 +946,90 @@
                 closeModal('attendance-modal');
             }
         });
+
+        // --- CHECK IN AND EXPORT LOGIC ---
+        function generateCheckInCode() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        function activateCheckInCodes() {
+            const now = new Date();
+            state.calls.forEach(call => {
+                const callTime = new Date(`${call.date}T${call.time}`);
+                const diffMinutes = (callTime - now) / (1000 * 60);
+                if (diffMinutes <= 60 && diffMinutes > -180) { // Activate 1 hour before, deactivate 3 hours after
+                    if (!call.checkInCode) {
+                        call.checkInCode = generateCheckInCode();
+                    }
+                    call.codeActive = true;
+                } else {
+                    call.codeActive = false;
+                }
+            });
+            renderCalls();
+            renderActorCheckInSection();
+        }
+        
+        function forceCode(callId) {
+            const call = state.calls.find(c => c.id === callId);
+            if(call) {
+                call.checkInCode = generateCheckInCode();
+                call.codeActive = true;
+                renderCalls();
+            }
+        }
+        
+        function handleActorCheckIn(e) {
+            e.preventDefault();
+            const input = document.getElementById('check-in-code-input');
+            const messageEl = document.getElementById('check-in-message');
+            const enteredCode = input.value;
+            const activeCall = state.calls.find(c => c.codeActive && c.checkInCode === enteredCode);
+
+            if (activeCall) {
+                const actor = state.actors.find(a => a.id === state.currentUser.id);
+                actor.status = 'Present';
+                actor.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                messageEl.textContent = 'Successfully checked in!';
+                messageEl.className = "text-sm h-4 mt-2 text-green-400";
+                input.disabled = true;
+                e.target.querySelector('button').disabled = true;
+                renderAttendance();
+            } else {
+                messageEl.textContent = 'Invalid code. Please try again.';
+                messageEl.className = "text-sm h-4 mt-2 text-red-400";
+            }
+        }
+        
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportAttendanceReport() {
+            let csv = "Name,Status,Reason,Timestamp\n";
+            state.actors.forEach(actor => {
+                csv += `${actor.name},${actor.status},"${actor.statusReason || ''}",${actor.timestamp || ''}\n`;
+            });
+            downloadCSV(csv, `attendance_report_${new Date().toISOString().slice(0,10)}.csv`);
+        }
+        
+        function exportBehaviorReport() {
+            let csv = "Date,Subject,Title,Description,Logged By\n";
+            state.behaviorNotes.forEach(note => {
+                const noteDate = new Date(note.id).toISOString().slice(0,10);
+                csv += `${noteDate},${note.subjectName},"${note.title}","${note.description}",${note.authorName}\n`;
+            });
+            downloadCSV(csv, `behavior_report_${new Date().toISOString().slice(0,10)}.csv`);
+        }
+
 
     </script>
 </body>
