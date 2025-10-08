@@ -54,7 +54,7 @@
         <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8">
                 <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p class="text-gray-400">Connecting to Server...</p>
+                <p id="loading-text" class="text-gray-400">Connecting to Server...</p>
             </div>
         </div>
         
@@ -69,6 +69,9 @@
                     <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
                     <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
                 </form>
+                 <div id="first-time-setup-prompt" class="hidden mt-4 text-sm text-gray-400">
+                    <p>If this is the first time running the app, please log in as a Director to initialize the database.</p>
+                </div>
             </div>
         </div>
 
@@ -906,7 +909,7 @@
             try {
                 await batch.commit();
                 console.log("First-Time Setup Complete!");
-                document.getElementById('first-time-setup-banner').classList.add('hidden');
+                document.getElementById('first-time-setup-banner').innerHTML = `<p class="text-green-300">Database initialized successfully. Please refresh the page.</p>`;
             } catch (e) {
                 console.error("Error during first-time setup: ", e);
                 setupButton.disabled = false;
@@ -1171,7 +1174,14 @@
         }
         
         window.logout = () => {
-             signOut(auth).catch(error => console.error("Sign out error", error));
+             // We don't sign out from Firebase anonymous auth, just reset the app state
+             state.currentUser = null;
+             document.getElementById('main-portal-view').style.display = 'none';
+             document.getElementById('login-view').classList.replace('hidden', 'flex');
+             document.getElementById('login-form').reset();
+             state.unsubscribe.forEach(unsub => unsub());
+             state.unsubscribe = [];
+             if (checkInInterval) clearInterval(checkInInterval);
         }
 
         // --- APP INITIALIZATION ---
@@ -1216,40 +1226,35 @@
                     if (checkInInterval) clearInterval(checkInInterval);
                     checkInInterval = setInterval(activateCheckInCodes, 60000);
                 } else {
+                    const isDirector = initialData.users.find(u => u.username === username && u.password === password && u.role === 'director');
+                    if (isDirector) {
+                         const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
+                         const actorsSnapshot = await getDocs(actorsCollectionRef);
+                         if(actorsSnapshot.empty){
+                             document.getElementById('login-view').classList.replace('flex', 'hidden');
+                             document.getElementById('main-portal-view').style.display = 'flex';
+                             state.currentUser = isDirector;
+                             setupPortal();
+                             document.getElementById('first-time-setup-banner').classList.remove('hidden');
+                             document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
+                             return;
+                         }
+                    }
                     loginError.textContent = 'Invalid username or password.';
                 }
             });
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Firebase Auth is ready, show the login form
+                    document.getElementById('loading-text').textContent = 'Ready for Sign-in...';
                     document.getElementById('loading-view').style.display = 'none';
                     document.getElementById('login-view').classList.replace('hidden', 'flex');
-                    
-                    // Check if DB needs setup
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
-                    const actorsSnapshot = await getDocs(actorsCollectionRef);
-                    if (actorsSnapshot.empty) {
-                        const setupBanner = document.getElementById('first-time-setup-banner');
-                        setupBanner.classList.remove('hidden');
-                        setupBanner.innerHTML = `<p class="text-white">Welcome! As a one-time setup, please log in as a Director to initialize the database.</p>`;
-                        document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                    }
-
-
                 } else {
-                    // User is signed out or session ended
-                    state.currentUser = null;
-                    document.getElementById('main-portal-view').style.display = 'none';
-                    document.getElementById('login-view').classList.replace('hidden', 'flex');
-                    state.unsubscribe.forEach(unsub => unsub());
-                    state.unsubscribe = [];
-                    if (checkInInterval) clearInterval(checkInInterval);
-                    
-                    // Always try to maintain an anonymous session in the background
+                    // This block will run if signOut is ever called, or if the session is invalidated.
+                    // For now, we rely on anonymous auth to persist.
                     signInAnonymously(auth).catch(error => {
                         console.error("Anonymous sign-in failed: ", error);
+                        document.getElementById('loading-text').textContent = "Connection Failed. Please refresh.";
                     });
                 }
             });
