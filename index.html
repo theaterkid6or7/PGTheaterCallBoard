@@ -245,7 +245,7 @@
     <script type="module">
         // --- FIREBASE SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, writeBatch, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- LOCAL DATA & STATE ---
@@ -1104,7 +1104,7 @@
             const input = document.getElementById('check-in-code-input');
             const messageEl = document.getElementById('check-in-message');
             const enteredCode = input.value;
-            const activeCall = state.calls.find(c => c.codeActive && c.checkInCode === enteredCode);
+            const activeCall = state.calls.find(c => c.codeActive && c.checkInCode == enteredCode);
 
             if (activeCall) {
                 const actor = state.actors.find(a => a.id === state.currentUser.id);
@@ -1169,15 +1169,37 @@
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // User is signed in. Now fetch their profile from Firestore.
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    
-                    // This is a workaround for mapping auth UID to the static user list
-                    // In a real app, user profiles would be created with the UID as the doc ID.
-                    // Here, we'll try to find a user doc that matches the `username` in the token.
-                    // This part is highly dependent on how the custom token is generated.
-                    // Assuming a 'username' claim in the token.
-                    const username = user.token.claims?.username || initialData.users[Math.floor(Math.random()*initialData.users.length)].username; // Fallback for anonymous
+                    let username;
+
+                    if (user.isAnonymous) {
+                        console.log("User is anonymous. Assigning a random viewing profile.");
+                        // For anonymous users, we can't know who they are, so we assign a random user profile for viewing purposes.
+                        const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
+                        username = randomUser.username;
+                    } else {
+                        try {
+                            const idTokenResult = await getIdTokenResult(user);
+                            // If the custom token has a 'username' claim, we use it.
+                            if (idTokenResult.claims.username) {
+                                username = idTokenResult.claims.username;
+                            } else {
+                                console.log("No 'username' claim in token. Treating as anonymous.");
+                                const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
+                                username = randomUser.username;
+                            }
+                        } catch (error) {
+                            console.error("Error getting token claims. Treating as anonymous.", error);
+                            const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
+                            username = randomUser.username;
+                        }
+                    }
+
+                    if (!username) {
+                        console.error("FATAL: Could not determine a username for the session.");
+                        document.getElementById('loading-view').innerHTML = `<p class="text-red-400">Error: Could not establish user session.</p>`;
+                        return; // Stop execution if no username can be found.
+                    }
                     
                     const userProfileRef = doc(db, `artifacts/${appId}/public/data/users`, username);
                     const userProfileSnap = await getDoc(userProfileRef);
@@ -1191,16 +1213,13 @@
                          if (checkInInterval) clearInterval(checkInInterval);
                         checkInInterval = setInterval(activateCheckInCodes, 60000);
                     } else {
-                        // This user profile doesn't exist, might be first time setup
                         console.log("User profile not found. Checking for setup...");
                         const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
                         const actorsSnapshot = await getDocs(actorsCollectionRef);
                         if (actorsSnapshot.empty) {
-                            // Likely first time. Show setup banner.
                              document.getElementById('loading-view').style.display = 'none';
                              document.getElementById('main-portal-view').style.display = 'flex';
-                             // A user needs to be a director to see the banner
-                             state.currentUser = {role: 'director', name: 'Admin'};
+                             state.currentUser = {role: 'director', name: 'Admin'}; // Temporary admin for setup
                              setupPortal();
                              document.getElementById('first-time-setup-banner').classList.remove('hidden');
                              document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
@@ -1214,14 +1233,15 @@
                     state.currentUser = null;
                     document.getElementById('main-portal-view').style.display = 'none';
                     document.getElementById('loading-view').style.display = 'flex';
-                    // Clean up listeners
                     state.unsubscribe.forEach(unsub => unsub());
                     state.unsubscribe = [];
                     if (checkInInterval) clearInterval(checkInInterval);
 
-                    // Attempt to sign in
                      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
+                        await signInWithCustomToken(auth, __initial_auth_token).catch(e => {
+                            console.error("Custom token sign-in failed, trying anonymous.", e);
+                            signInAnonymously(auth);
+                        });
                     } else {
                         await signInAnonymously(auth);
                     }
@@ -1232,6 +1252,13 @@
             console.error("Firebase initialization failed:", error);
             document.getElementById('loading-view').innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not connect to the database. Please check the configuration.</p></div>`;
         }
+
+    </script>
+</body>
+</html>
+
+
+
 
     </script>
 </body>
