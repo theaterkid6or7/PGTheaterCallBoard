@@ -50,17 +50,11 @@
 
     <div id="app-container" class="h-full flex flex-col">
 
-        <!-- Login View -->
-        <div id="login-view" class="flex items-center justify-center min-h-screen bg-black">
-            <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
-                <h1 class="font-display text-4xl text-gold-300 mb-2">Virtual Call Board</h1>
-                <p class="text-gray-400 mb-6">Please sign in to continue.</p>
-                <form id="login-form">
-                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
-                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
-                    <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
-                </form>
+        <!-- Loading View -->
+        <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
+            <div class="text-center p-8">
+                <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
+                <p class="text-gray-400">Loading...</p>
             </div>
         </div>
 
@@ -77,6 +71,11 @@
 
             <!-- Main Content -->
             <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div id="first-time-setup-banner" class="hidden mb-6 bg-rose-800 border border-rose-600 p-4 rounded-lg text-center">
+                    <h3 class="font-bold text-lg text-white mb-2">First-Time Setup Required</h3>
+                    <p class="text-rose-200 mb-4">To get started, the database needs to be initialized with your company's data.</p>
+                    <button id="setup-button" class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-6 rounded">Initialize Database</button>
+                </div>
                 <div id="actor-check-in-section" class="hidden mb-6"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -242,15 +241,32 @@
             </form>
         </div>
     </div>
+    
+    <script type="module">
+        // --- FIREBASE SDK IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, writeBatch, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-
-    <script>
-        // --- DATABASE ---
+        // --- LOCAL DATA & STATE ---
         let checkInInterval = null;
+        let db, auth;
 
+        // This object holds the current state of the app, populated by Firebase
         const state = {
-            currentUser: null,
-            users: [
+            currentUser: null, // Holds profile from 'users' collection
+            actors: [],
+            announcements: [],
+            calls: [],
+            behaviorNotes: [],
+            groups: {},
+            itemToDelete: { type: null, id: null },
+            unsubscribe: [], // To hold listener unsub functions
+        };
+
+        // --- INITIAL DATA FOR FIRST-TIME SETUP ---
+        const initialData = {
+             users: [
                 { id: 1, username: 'lnewton', password: '?2@2yzz~PVJf', role: 'director', name: 'L. Newton' },
                 { id: 2, username: 'tbeck', password: 'pHR68Db.Pw.#', role: 'sm', name: 'T. Beck' },
                 { id: 3, username: 'gloshe', password: 'iT=hy!7G9NTf', role: 'director', name: 'G. Loshe' },
@@ -325,7 +341,7 @@
                 { id: 72, username: 'yji', password: 'g5T}QPUMM-e4', role: 'actor', name: 'Y. Ji' },
             ],
             actors: [
-                { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
+                 { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
                 { id: 10, name: 'C. Beck', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
                 { id: 11, name: 'S. Julien', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
                 { id: 12, name: 'A. Gipson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
@@ -390,32 +406,35 @@
                 'dance-ens': 'Dance Ens'
             },
             announcements: [
-                { id: 1, title: 'Welcome to the Production!', content: 'We are so excited to get started. Please check the call board daily for updates. Scripts are available for pickup from the SM station.', author: 'The Director' },
-                { id: 2, title: 'Costume Fittings Schedule', content: 'Fittings will be held this Wednesday. Please sign up for a time slot on the sheet posted on the physical call board.', author: 'Stage Manager' },
+                { id: "1", title: 'Welcome to the Production!', content: 'We are so excited to get started. Please check the call board daily for updates. Scripts are available for pickup from the SM station.', author: 'The Director' },
+                { id: "2", title: 'Costume Fittings Schedule', content: 'Fittings will be held this Wednesday. Please sign up for a time slot on the sheet posted on the physical call board.', author: 'Stage Manager' },
             ],
             calls: [
-                 { id: 1, date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['Full Cast'], checkInCode: null, codeActive: false },
-                 { id: 2, date: '2025-10-07', time: '19:30', location: 'Dance Studio', notes: 'Dance Ensemble choreography for Act 1.', called: ['Dance Ens'], checkInCode: null, codeActive: false },
+                 { id: "1", date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['Full Cast'], checkInCode: null, codeActive: false },
+                 { id: "2", date: '2025-10-07', time: '19:30', location: 'Dance Studio', notes: 'Dance Ensemble choreography for Act 1.', called: ['Dance Ens'], checkInCode: null, codeActive: false },
             ],
             behaviorNotes: [
-                { id: 1, title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.', authorId: 1, authorName: 'L. Newton', subjectId: 'general', subjectName: 'General' },
-                { id: 2, title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!', authorId: 2, authorName: 'T. Beck', subjectId: 'general', subjectName: 'General' },
-            ],
-            itemToDelete: { type: null, id: null }
+                { id: "1", title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.', authorId: 1, authorName: 'L. Newton', subjectId: 'general', subjectName: 'General' },
+                { id: "2", title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!', authorId: 2, authorName: 'T. Beck', subjectId: 'general', subjectName: 'General' },
+            ]
         };
-
+        
         // --- RENDER FUNCTIONS ---
         function renderAttendance() {
             const list = document.getElementById('attendance-list');
             list.innerHTML = '';
-            const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
-            const isActor = state.currentUser.role === 'actor';
+            const canEdit = state.currentUser?.role === 'sm' || state.currentUser?.role === 'director';
+            const isActor = state.currentUser?.role === 'actor';
             
-            let actorsToRender = state.actors;
+            let actorsToRender = [...state.actors].sort((a,b) => a.name.localeCompare(b.name));
             if(isActor) {
                 actorsToRender = state.actors.filter(a => a.id === state.currentUser.id);
             }
 
+            if(actorsToRender.length === 0){
+                list.innerHTML = `<p class="text-gray-500 text-center">No attendance data.</p>`;
+                return;
+            }
 
             actorsToRender.forEach(actor => {
                 let statusClass = '';
@@ -467,13 +486,18 @@
         function renderAnnouncements() {
             const list = document.getElementById('announcement-list');
             list.innerHTML = '';
-            const canEdit = state.currentUser.role === 'sm' || state.currentUser.role === 'director';
+            const canEdit = state.currentUser?.role === 'sm' || state.currentUser?.role === 'director';
             
+             if(state.announcements.length === 0){
+                list.innerHTML = `<p class="text-gray-500 text-center">No announcements yet.</p>`;
+                return;
+            }
+
             [...state.announcements].reverse().forEach(ann => {
                 const editButtons = canEdit ? `
                     <div class="absolute top-2 right-2 flex gap-2">
-                        <button onclick="openAnnouncementModal(${ann.id})" class="text-gray-400 hover:text-white transition">✏️</button>
-                        <button onclick="confirmDelete('announcement', ${ann.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                        <button onclick="openAnnouncementModal('${ann.id}')" class="text-gray-400 hover:text-white transition">✏️</button>
+                        <button onclick="confirmDelete('announcement', '${ann.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
                     </div>
                 ` : '';
 
@@ -493,29 +517,31 @@
             const list = document.getElementById('call-list');
             list.innerHTML = '';
             const user = state.currentUser;
-            const canManage = user.role === 'sm' || user.role === 'director';
+            const canManage = user?.role === 'sm' || user?.role === 'director';
             
             let callsToRender = state.calls;
-            // Filter calls for actors
-            if (user.role === 'actor') {
-                const userActor = state.actors.find(a => a.id === user.id);
+            if (user?.role === 'actor') {
                 callsToRender = state.calls.filter(call => {
                     const calledGroups = call.called.filter(c => state.groups[c.toLowerCase().replace(/\s/g, '-')]);
                     const userInCalledGroup = calledGroups.some(groupName => {
                         const groupKey = groupName.toLowerCase().replace(/\s/g, '-');
-                        return userActor.groups.includes(groupKey);
+                        return user.groups.includes(groupKey);
                     });
 
                     return call.called.includes(user.name) || call.called.includes('Full Cast') || userInCalledGroup;
                 });
             }
 
+             if(callsToRender.length === 0){
+                list.innerHTML = `<p class="text-gray-500 text-center">No calls scheduled for you.</p>`;
+                return;
+            }
 
             [...callsToRender].reverse().forEach(call => {
                  const editButtons = canManage ? `
                     <div class="absolute top-2 right-2 flex gap-2">
-                        <button onclick="openCallModal(${call.id})" class="text-gray-400 hover:text-white transition">✏️</button>
-                        <button onclick="confirmDelete('call', ${call.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                        <button onclick="openCallModal('${call.id}')" class="text-gray-400 hover:text-white transition">✏️</button>
+                        <button onclick="confirmDelete('call', '${call.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
                     </div>
                 ` : '';
 
@@ -534,7 +560,7 @@
                            <p class="text-2xl font-bold tracking-widest text-gold-300">${call.checkInCode}</p>
                         </div>`;
                     } else {
-                        checkInSection = `<div class="mt-3"><button onclick="forceCode(${call.id})" class="w-full text-xs bg-gray-700 hover:bg-gray-600 p-2 rounded-md">Force Code</button></div>`;
+                        checkInSection = `<div class="mt-3"><button onclick="forceCode('${call.id}')" class="w-full text-xs bg-gray-700 hover:bg-gray-600 p-2 rounded-md">Force Code</button></div>`;
                     }
                 }
 
@@ -560,9 +586,9 @@
             const user = state.currentUser;
             let notesToDisplay = [];
 
-            if (user.role === 'director' || user.role === 'sm') {
+            if (user?.role === 'director' || user?.role === 'sm') {
                 notesToDisplay = state.behaviorNotes;
-            } else if (user.role === 'actor') {
+            } else if (user?.role === 'actor') {
                 notesToDisplay = state.behaviorNotes.filter(note => note.subjectId === user.id || note.subjectId === 'general');
             }
             
@@ -572,14 +598,14 @@
             }
 
             [...notesToDisplay].reverse().forEach(note => {
-                const deleteButton = user.role === 'director' ? `
-                    <button onclick="confirmDelete('behavior', ${note.id})" class="text-gray-400 hover:text-white transition">🗑️</button>
+                const deleteButton = user?.role === 'director' ? `
+                    <button onclick="confirmDelete('behavior', '${note.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
                 ` : '';
                 const noteEl = document.createElement('div');
                 noteEl.className = 'bg-gray-800 p-4 rounded-lg relative';
                 
                 let subjectLine = '';
-                if (user.role === 'director' || user.role === 'sm') {
+                if (user?.role === 'director' || user?.role === 'sm') {
                     subjectLine = `<p class="text-sm text-gray-400 mb-2">Subject: ${note.subjectName} | Logged by: ${note.authorName}</p>`;
                 }
 
@@ -595,7 +621,7 @@
         
         function renderActorCheckInSection() {
             const container = document.getElementById('actor-check-in-section');
-            if (state.currentUser.role !== 'actor') {
+            if (state.currentUser?.role !== 'actor') {
                 container.innerHTML = '';
                 container.classList.add('hidden');
                 return;
@@ -631,7 +657,7 @@
         }
 
         // --- ACTIONS ---
-        function openAttendanceModal(actorId) {
+        async function openAttendanceModal(actorId) {
             const actor = state.actors.find(a => a.id === actorId);
             if (!actor) return;
             
@@ -642,54 +668,64 @@
             openModal('attendance-modal');
         }
 
-        document.getElementById('attendance-form').addEventListener('submit', function(e) {
+        document.getElementById('attendance-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const actorId = parseInt(document.getElementById('attendance-actor-id').value);
             const actor = state.actors.find(a => a.id === actorId);
             if (!actor) return;
-
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
+            
             const newStatus = document.getElementById('attendance-status').value;
             const newReason = document.getElementById('attendance-reason').value;
-
-            actor.status = newStatus;
-            actor.statusReason = newReason;
+            
+            const updateData = {
+                status: newStatus,
+                statusReason: newReason,
+            };
 
             if (newStatus === 'Present' || newStatus === 'Late') {
-                if (!actor.timestamp) {
-                    actor.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
+                 updateData.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             } else { // Absent or Early Departure
-                actor.timestamp = null;
+                updateData.timestamp = null;
             }
             
             if (newStatus === 'Present') {
-                actor.statusReason = ''; // Clear reason if present
+                updateData.statusReason = ''; // Clear reason if present
             }
-
-            renderAttendance();
-            closeModal('attendance-modal');
+            
+            try {
+                await updateDoc(actorRef, updateData);
+                closeModal('attendance-modal');
+            } catch(error){
+                console.error("Error updating attendance:", error);
+            }
         });
 
-        document.getElementById('announcement-form').addEventListener('submit', function(e) {
+        document.getElementById('announcement-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const id = document.getElementById('announcement-id').value;
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/announcements`);
             
-            if (id) { // Editing existing
-                const ann = state.announcements.find(a => a.id == id);
-                ann.title = title;
-                ann.content = content;
-            } else { // Creating new
-                const author = state.currentUser.role === 'director' ? 'The Director' : 'Stage Manager';
-                const newAnnouncement = { id: Date.now(), title, content, author };
-                state.announcements.push(newAnnouncement);
+            try {
+                if (id) { // Editing existing
+                    const docRef = doc(collectionRef, id);
+                    await updateDoc(docRef, { title, content });
+                } else { // Creating new
+                    const author = state.currentUser.role === 'director' ? 'The Director' : 'Stage Manager';
+                    await addDoc(collectionRef, { title, content, author, createdAt: new Date() });
+                }
+                closeModal('announcement-modal');
+            } catch(error) {
+                console.error("Error saving announcement:", error);
             }
-            renderAnnouncements();
-            closeModal('announcement-modal');
         });
 
-        document.getElementById('call-form').addEventListener('submit', function(e) {
+        document.getElementById('call-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const id = document.getElementById('call-id').value;
             const calledActorsAndGroups = [];
@@ -704,21 +740,27 @@
                 notes: document.getElementById('call-notes').value,
                 called: calledActorsAndGroups.length > 0 ? calledActorsAndGroups : ['None specified']
             };
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/calls`);
 
-            if (id) { // Editing
-                const call = state.calls.find(c => c.id == id);
-                Object.assign(call, callData);
-            } else { // Creating
-                callData.id = Date.now();
-                callData.checkInCode = null;
-                callData.codeActive = false;
-                state.calls.push(callData);
+            try {
+                if (id) { // Editing
+                    const docRef = doc(collectionRef, id);
+                    await updateDoc(docRef, callData);
+                } else { // Creating
+                    callData.checkInCode = null;
+                    callData.codeActive = false;
+                    callData.createdAt = new Date();
+                    await addDoc(collectionRef, callData);
+                }
+                closeModal('call-modal');
+            } catch (error) {
+                console.error("Error saving call: ", error);
             }
-            renderCalls();
-            closeModal('call-modal');
         });
 
-        document.getElementById('behavior-form').addEventListener('submit', function(e) {
+        document.getElementById('behavior-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const subjectIdRaw = document.getElementById('behavior-subject').value;
@@ -726,23 +768,30 @@
             
             let subjectName = 'General';
             if(subjectId !== 'general') {
-                const subjectUser = state.users.find(u => u.id === subjectId);
+                const subjectUser = state.actors.find(u => u.id === subjectId);
                 subjectName = subjectUser.name;
             }
 
             const newNote = {
-                id: Date.now(),
                 title: document.getElementById('behavior-title').value,
                 description: document.getElementById('behavior-description').value,
                 authorId: state.currentUser.id,
                 authorName: state.currentUser.name,
                 subjectId: subjectId,
-                subjectName: subjectName
+                subjectName: subjectName,
+                createdAt: new Date(),
             };
-            state.behaviorNotes.push(newNote);
-            renderBehaviorNotes();
-            closeModal('behavior-modal');
-            this.reset();
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/behaviorNotes`);
+
+            try {
+                await addDoc(collectionRef, newNote);
+                closeModal('behavior-modal');
+                this.reset();
+            } catch (error) {
+                console.error("Error logging behavior note: ", error);
+            }
         });
 
         function confirmDelete(type, id) {
@@ -750,44 +799,31 @@
             openModal('delete-modal');
         }
 
-        document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
             const { type, id } = state.itemToDelete;
-            if (type === 'announcement') {
-                state.announcements = state.announcements.filter(a => a.id !== id);
-                renderAnnouncements();
-            } else if (type === 'call') {
-                state.calls = state.calls.filter(c => c.id !== id);
-                renderCalls();
-            } else if (type === 'behavior') {
-                state.behaviorNotes = state.behaviorNotes.filter(b => b.id !== id);
-                renderBehaviorNotes();
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            let collectionName = '';
+            if (type === 'announcement') collectionName = 'announcements';
+            else if (type === 'call') collectionName = 'calls';
+            else if (type === 'behavior') collectionName = 'behaviorNotes';
+            
+            if (collectionName) {
+                try {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/${collectionName}`, id);
+                    await deleteDoc(docRef);
+                } catch (error) {
+                    console.error(`Error deleting ${type}:`, error);
+                }
             }
             closeModal('delete-modal');
             state.itemToDelete = { type: null, id: null };
         });
 
-        // --- AUTH & NAVIGATION ---
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value.toLowerCase();
-            const password = document.getElementById('password').value;
-            const loginError = document.getElementById('login-error');
-
-            const user = state.users.find(u => u.username === username && u.password === password);
-
-            if (user) {
-                state.currentUser = user;
-                loginError.textContent = '';
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('main-portal-view').style.display = 'flex';
-                setupPortal();
-            } else {
-                loginError.textContent = 'Invalid username or password.';
-            }
-        });
-        
+        // --- AUTH & SETUP ---
         function setupPortal() {
             const user = state.currentUser;
+            if (!user) return;
+
             const portalTitle = document.getElementById('portal-title');
             const portalHeader = document.getElementById('portal-header');
             const smDirectorBtns = document.querySelectorAll('.sm-director-btn');
@@ -811,78 +847,156 @@
                 smDirectorBtns.forEach(b => b.classList.remove('hidden'));
                 directorBtns.forEach(b => b.classList.remove('hidden'));
             }
+        }
+        
+        async function runFirstTimeSetup() {
+            console.log("Running First-Time Database Setup...");
+            const setupButton = document.getElementById('setup-button');
+            setupButton.disabled = true;
+            setupButton.textContent = "Initializing...";
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const batch = writeBatch(db);
 
-            if (checkInInterval) clearInterval(checkInInterval);
-            checkInInterval = setInterval(activateCheckInCodes, 60000); // Check every minute
-            activateCheckInCodes(); // Run once immediately on login
-            renderAll();
+            // Set up users, mapping username to a doc
+            initialData.users.forEach(user => {
+                const userRef = doc(db, `artifacts/${appId}/public/data/users`, user.username);
+                batch.set(userRef, user);
+            });
+            
+            // Set up actors with their ID as the doc ID
+            initialData.actors.forEach(actor => {
+                const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
+                batch.set(actorRef, actor);
+            });
+
+            // Set up initial announcements, calls, etc.
+            initialData.announcements.forEach(item => {
+                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/announcements`));
+                batch.set(itemRef, {...item, createdAt: new Date()});
+            });
+            initialData.calls.forEach(item => {
+                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/calls`));
+                batch.set(itemRef, {...item, createdAt: new Date()});
+            });
+             initialData.behaviorNotes.forEach(item => {
+                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/behaviorNotes`));
+                batch.set(itemRef, {...item, createdAt: new Date()});
+            });
+
+            // Add groups doc
+            const groupsRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+            batch.set(groupsRef, initialData.groups);
+
+            try {
+                await batch.commit();
+                console.log("First-Time Setup Complete!");
+                document.getElementById('first-time-setup-banner').classList.add('hidden');
+                attachListeners(); // Now that data exists, attach listeners
+            } catch (e) {
+                console.error("Error during first-time setup: ", e);
+                setupButton.disabled = false;
+                setupButton.textContent = "Retry Initialization";
+            }
         }
 
-        function logout() {
-            state.currentUser = null;
-            document.getElementById('main-portal-view').style.display = 'none';
-            document.getElementById('login-view').style.display = 'flex';
-            document.getElementById('login-form').reset();
-            if (checkInInterval) clearInterval(checkInInterval);
+        // --- LISTENERS ---
+        function attachListeners() {
+             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            // Detach any existing listeners
+            state.unsubscribe.forEach(unsub => unsub());
+            state.unsubscribe = [];
+
+            const qActors = query(collection(db, `artifacts/${appId}/public/data/actors`));
+            state.unsubscribe.push(onSnapshot(qActors, (snapshot) => {
+                state.actors = snapshot.docs.map(doc => ({ ...doc.data(), id: parseInt(doc.id) }));
+                renderAttendance();
+                populateBehaviorSubjectDropdown();
+            }));
+
+            const qAnnouncements = query(collection(db, `artifacts/${appId}/public/data/announcements`));
+            state.unsubscribe.push(onSnapshot(qAnnouncements, (snapshot) => {
+                state.announcements = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                renderAnnouncements();
+            }));
+            
+            const qCalls = query(collection(db, `artifacts/${appId}/public/data/calls`));
+            state.unsubscribe.push(onSnapshot(qCalls, (snapshot) => {
+                state.calls = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                activateCheckInCodes(); // This will re-render calls and check-in
+            }));
+            
+            const qBehavior = query(collection(db, `artifacts/${appId}/public/data/behaviorNotes`));
+            state.unsubscribe.push(onSnapshot(qBehavior, (snapshot) => {
+                state.behaviorNotes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                renderBehaviorNotes();
+            }));
+            
+            // Listener for groups
+            const groupsRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+             state.unsubscribe.push(onSnapshot(groupsRef, (doc) => {
+                if (doc.exists()) {
+                    state.groups = doc.data();
+                }
+            }));
         }
 
         // --- MODAL CONTROLS ---
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.replace('hidden', 'flex');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.replace('flex', 'hidden');
-        }
-
-        function openAnnouncementModal(id = null) {
+        window.openModal = (modalId) => document.getElementById(modalId).classList.replace('hidden', 'flex');
+        window.closeModal = (modalId) => document.getElementById(modalId).classList.replace('flex', 'hidden');
+        
+        window.openAnnouncementModal = async (id = null) => {
             const form = document.getElementById('announcement-form');
             form.reset();
             const modalTitle = document.getElementById('announcement-modal-title');
+            document.getElementById('announcement-id').value = '';
             if (id) {
                 const ann = state.announcements.find(a => a.id === id);
-                modalTitle.textContent = "Edit Announcement";
-                document.getElementById('announcement-id').value = ann.id;
-                document.getElementById('announcement-title').value = ann.title;
-                document.getElementById('announcement-content').value = ann.content;
+                if(ann) {
+                    modalTitle.textContent = "Edit Announcement";
+                    document.getElementById('announcement-id').value = ann.id;
+                    document.getElementById('announcement-title').value = ann.title;
+                    document.getElementById('announcement-content').value = ann.content;
+                }
             } else {
                 modalTitle.textContent = "New Announcement";
-                document.getElementById('announcement-id').value = '';
             }
             openModal('announcement-modal');
         }
         
-        function openCallModal(id = null) {
+        window.openCallModal = async (id = null) => {
             const form = document.getElementById('call-form');
             form.reset();
             const modalTitle = document.getElementById('call-modal-title');
             populateActorCheckboxes();
+            document.getElementById('call-id').value = '';
 
             if(id) {
                 const call = state.calls.find(c => c.id === id);
-                modalTitle.textContent = "Edit Call";
-                document.getElementById('call-id').value = call.id;
-                document.getElementById('call-date').value = call.date;
-                document.getElementById('call-time').value = call.time;
-                document.getElementById('call-location').value = call.location;
-                document.getElementById('call-notes').value = call.notes;
-                
-                document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
-                    if(call.called.includes(cb.dataset.name)) {
-                        cb.checked = true;
-                    }
-                });
+                if(call) {
+                    modalTitle.textContent = "Edit Call";
+                    document.getElementById('call-id').value = call.id;
+                    document.getElementById('call-date').value = call.date;
+                    document.getElementById('call-time').value = call.time;
+                    document.getElementById('call-location').value = call.location;
+                    document.getElementById('call-notes').value = call.notes;
+                    
+                    document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
+                        if(call.called.includes(cb.dataset.name)) {
+                            cb.checked = true;
+                        }
+                    });
+                }
             } else {
                 modalTitle.textContent = "New Call";
-                document.getElementById('call-id').value = '';
                 document.getElementById('call-date').valueAsDate = new Date(); // Default to today
             }
             openModal('call-modal');
         }
 
-        function openBehaviorModal() {
-            const form = document.getElementById('behavior-form');
-            form.reset();
+        window.openBehaviorModal = () => {
+            document.getElementById('behavior-form').reset();
             populateBehaviorSubjectDropdown();
             openModal('behavior-modal');
         }
@@ -922,7 +1036,7 @@
             });
         }
 
-        function selectGroup(event, groupKey) {
+        window.selectGroup = (event, groupKey) => {
             const actorCheckboxes = document.querySelectorAll('#call-actors-list input[name="actor"]');
             const shouldBeChecked = event.target.checked;
             if (groupKey === 'full-cast') {
@@ -935,8 +1049,7 @@
                 });
             }
         }
-
-        // Close modal on escape key press
+        
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal('announcement-modal');
@@ -952,34 +1065,41 @@
             return Math.floor(1000 + Math.random() * 9000).toString();
         }
 
-        function activateCheckInCodes() {
+        async function activateCheckInCodes() {
             const now = new Date();
-            state.calls.forEach(call => {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            for (const call of state.calls) {
                 const callTime = new Date(`${call.date}T${call.time}`);
                 const diffMinutes = (callTime - now) / (1000 * 60);
-                if (diffMinutes <= 60 && diffMinutes > -180) { // Activate 1 hour before, deactivate 3 hours after
-                    if (!call.checkInCode) {
-                        call.checkInCode = generateCheckInCode();
-                    }
-                    call.codeActive = true;
-                } else {
-                    call.codeActive = false;
+                const shouldBeActive = diffMinutes <= 60 && diffMinutes > -180;
+                
+                if (shouldBeActive && !call.codeActive) {
+                    const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
+                    await updateDoc(callRef, {
+                        codeActive: true,
+                        checkInCode: generateCheckInCode()
+                    });
+                } else if (!shouldBeActive && call.codeActive) {
+                    const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
+                    await updateDoc(callRef, { codeActive: false });
                 }
-            });
-            renderCalls();
-            renderActorCheckInSection();
-        }
-        
-        function forceCode(callId) {
-            const call = state.calls.find(c => c.id === callId);
-            if(call) {
-                call.checkInCode = generateCheckInCode();
-                call.codeActive = true;
-                renderCalls();
             }
         }
         
-        function handleActorCheckIn(e) {
+        window.forceCode = async (callId) => {
+            const call = state.calls.find(c => c.id === callId);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            if(call) {
+                const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
+                await updateDoc(callRef, {
+                    codeActive: true,
+                    checkInCode: generateCheckInCode()
+                });
+            }
+        }
+        
+        async function handleActorCheckIn(e) {
             e.preventDefault();
             const input = document.getElementById('check-in-code-input');
             const messageEl = document.getElementById('check-in-message');
@@ -988,13 +1108,19 @@
 
             if (activeCall) {
                 const actor = state.actors.find(a => a.id === state.currentUser.id);
-                actor.status = 'Present';
-                actor.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
+                
+                await updateDoc(actorRef, {
+                    status: 'Present',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+
                 messageEl.textContent = 'Successfully checked in!';
                 messageEl.className = "text-sm h-4 mt-2 text-green-400";
                 input.disabled = true;
                 e.target.querySelector('button').disabled = true;
-                renderAttendance();
             } else {
                 messageEl.textContent = 'Invalid code. Please try again.';
                 messageEl.className = "text-sm h-4 mt-2 text-red-400";
@@ -1013,7 +1139,7 @@
             document.body.removeChild(link);
         }
 
-        function exportAttendanceReport() {
+        window.exportAttendanceReport = () => {
             let csv = "Name,Status,Reason,Timestamp\n";
             state.actors.forEach(actor => {
                 csv += `${actor.name},${actor.status},"${actor.statusReason || ''}",${actor.timestamp || ''}\n`;
@@ -1021,15 +1147,91 @@
             downloadCSV(csv, `attendance_report_${new Date().toISOString().slice(0,10)}.csv`);
         }
         
-        function exportBehaviorReport() {
+        window.exportBehaviorReport = () => {
             let csv = "Date,Subject,Title,Description,Logged By\n";
             state.behaviorNotes.forEach(note => {
-                const noteDate = new Date(note.id).toISOString().slice(0,10);
+                const noteDate = note.createdAt.toDate().toISOString().slice(0,10);
                 csv += `${noteDate},${note.subjectName},"${note.title}","${note.description}",${note.authorName}\n`;
             });
             downloadCSV(csv, `behavior_report_${new Date().toISOString().slice(0,10)}.csv`);
         }
+        
+        window.logout = () => {
+             signOut(auth).catch(error => console.error("Sign out error", error));
+        }
 
+        // --- APP INITIALIZATION ---
+        try {
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // User is signed in. Now fetch their profile from Firestore.
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    
+                    // This is a workaround for mapping auth UID to the static user list
+                    // In a real app, user profiles would be created with the UID as the doc ID.
+                    // Here, we'll try to find a user doc that matches the `username` in the token.
+                    // This part is highly dependent on how the custom token is generated.
+                    // Assuming a 'username' claim in the token.
+                    const username = user.token.claims?.username || initialData.users[Math.floor(Math.random()*initialData.users.length)].username; // Fallback for anonymous
+                    
+                    const userProfileRef = doc(db, `artifacts/${appId}/public/data/users`, username);
+                    const userProfileSnap = await getDoc(userProfileRef);
+                    
+                    if (userProfileSnap.exists()) {
+                        state.currentUser = userProfileSnap.data();
+                        document.getElementById('loading-view').style.display = 'none';
+                        document.getElementById('main-portal-view').style.display = 'flex';
+                        setupPortal();
+                        attachListeners();
+                         if (checkInInterval) clearInterval(checkInInterval);
+                        checkInInterval = setInterval(activateCheckInCodes, 60000);
+                    } else {
+                        // This user profile doesn't exist, might be first time setup
+                        console.log("User profile not found. Checking for setup...");
+                        const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
+                        const actorsSnapshot = await getDocs(actorsCollectionRef);
+                        if (actorsSnapshot.empty) {
+                            // Likely first time. Show setup banner.
+                             document.getElementById('loading-view').style.display = 'none';
+                             document.getElementById('main-portal-view').style.display = 'flex';
+                             // A user needs to be a director to see the banner
+                             state.currentUser = {role: 'director', name: 'Admin'};
+                             setupPortal();
+                             document.getElementById('first-time-setup-banner').classList.remove('hidden');
+                             document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
+                        } else {
+                             console.error("Database is set up, but your user profile was not found.");
+                        }
+                    }
+
+                } else {
+                    // User is signed out, or auth is initializing.
+                    state.currentUser = null;
+                    document.getElementById('main-portal-view').style.display = 'none';
+                    document.getElementById('loading-view').style.display = 'flex';
+                    // Clean up listeners
+                    state.unsubscribe.forEach(unsub => unsub());
+                    state.unsubscribe = [];
+                    if (checkInInterval) clearInterval(checkInInterval);
+
+                    // Attempt to sign in
+                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            document.getElementById('loading-view').innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not connect to the database. Please check the configuration.</p></div>`;
+        }
 
     </script>
 </body>
