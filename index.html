@@ -54,9 +54,24 @@
         <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8">
                 <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p class="text-gray-400">Loading...</p>
+                <p class="text-gray-400">Connecting to Server...</p>
             </div>
         </div>
+        
+        <!-- Login View -->
+        <div id="login-view" class="hidden items-center justify-center min-h-screen bg-black">
+            <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
+                <h1 class="font-display text-4xl text-gold-300 mb-2">Welcome</h1>
+                <p class="text-gray-400 mb-6">Please sign in to continue.</p>
+                <form id="login-form">
+                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
+                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
+                    <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
+                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
+                </form>
+            </div>
+        </div>
+
 
         <!-- Main Portal View -->
         <div id="main-portal-view" class="hidden h-full flex flex-col">
@@ -245,7 +260,7 @@
     <script type="module">
         // --- FIREBASE SDK IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, writeBatch, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // --- LOCAL DATA & STATE ---
@@ -794,7 +809,7 @@
             }
         });
 
-        function confirmDelete(type, id) {
+        window.confirmDelete = (type, id) => {
             state.itemToDelete = { type, id };
             openModal('delete-modal');
         }
@@ -892,7 +907,6 @@
                 await batch.commit();
                 console.log("First-Time Setup Complete!");
                 document.getElementById('first-time-setup-banner').classList.add('hidden');
-                attachListeners(); // Now that data exists, attach listeners
             } catch (e) {
                 console.error("Error during first-time setup: ", e);
                 setupButton.disabled = false;
@@ -1104,7 +1118,7 @@
             const input = document.getElementById('check-in-code-input');
             const messageEl = document.getElementById('check-in-message');
             const enteredCode = input.value;
-            const activeCall = state.calls.find(c => c.codeActive && c.checkInCode == enteredCode);
+            const activeCall = state.calls.find(c => c.codeActive && String(c.checkInCode).trim() === String(enteredCode).trim());
 
             if (activeCall) {
                 const actor = state.actors.find(a => a.id === state.currentUser.id);
@@ -1166,11 +1180,9 @@
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfig = JSON.parse(__firebase_config);
             } else {
-                console.warn("Firebase environment configuration not found. Using fallback credentials. Please replace with your project's configuration if deploying elsewhere.");
-                // Fallback configuration if the environment variable is not set.
-                // IMPORTANT: Replace with your actual Firebase project configuration if not using the intended environment.
+                console.warn("Firebase environment configuration not found. Using fallback credentials.");
                 firebaseConfig = {
-                    apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY", // Replace with your key
+                    apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
                     authDomain: "pg-theater-call-board.firebaseapp.com",
                     projectId: "pg-theater-call-board",
                     storageBucket: "pg-theater-call-board.firebasestorage.app",
@@ -1183,85 +1195,62 @@
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
+            
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const loginError = document.getElementById('login-error');
+                loginError.textContent = '';
+                
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const userRef = doc(db, `artifacts/${appId}/public/data/users`, username);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists() && userSnap.data().password === password) {
+                    state.currentUser = userSnap.data();
+                    document.getElementById('login-view').classList.replace('flex', 'hidden');
+                    document.getElementById('main-portal-view').style.display = 'flex';
+                    setupPortal();
+                    attachListeners();
+                    if (checkInInterval) clearInterval(checkInInterval);
+                    checkInInterval = setInterval(activateCheckInCodes, 60000);
+                } else {
+                    loginError.textContent = 'Invalid username or password.';
+                }
+            });
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    // Firebase Auth is ready, show the login form
+                    document.getElementById('loading-view').style.display = 'none';
+                    document.getElementById('login-view').classList.replace('hidden', 'flex');
+                    
+                    // Check if DB needs setup
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    let username;
-
-                    if (user.isAnonymous) {
-                        console.log("User is anonymous. Assigning a random viewing profile.");
-                        // For anonymous users, we can't know who they are, so we assign a random user profile for viewing purposes.
-                        const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
-                        username = randomUser.username;
-                    } else {
-                        try {
-                            const idTokenResult = await getIdTokenResult(user);
-                            // If the custom token has a 'username' claim, we use it.
-                            if (idTokenResult.claims.username) {
-                                username = idTokenResult.claims.username;
-                            } else {
-                                console.log("No 'username' claim in token. Treating as anonymous.");
-                                const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
-                                username = randomUser.username;
-                            }
-                        } catch (error) {
-                            console.error("Error getting token claims. Treating as anonymous.", error);
-                            const randomUser = initialData.users[Math.floor(Math.random()*initialData.users.length)];
-                            username = randomUser.username;
-                        }
+                    const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
+                    const actorsSnapshot = await getDocs(actorsCollectionRef);
+                    if (actorsSnapshot.empty) {
+                        const setupBanner = document.getElementById('first-time-setup-banner');
+                        setupBanner.classList.remove('hidden');
+                        setupBanner.innerHTML = `<p class="text-white">Welcome! As a one-time setup, please log in as a Director to initialize the database.</p>`;
+                        document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
                     }
 
-                    if (!username) {
-                        console.error("FATAL: Could not determine a username for the session.");
-                        document.getElementById('loading-view').innerHTML = `<p class="text-red-400">Error: Could not establish user session.</p>`;
-                        return; // Stop execution if no username can be found.
-                    }
-                    
-                    const userProfileRef = doc(db, `artifacts/${appId}/public/data/users`, username);
-                    const userProfileSnap = await getDoc(userProfileRef);
-                    
-                    if (userProfileSnap.exists()) {
-                        state.currentUser = userProfileSnap.data();
-                        document.getElementById('loading-view').style.display = 'none';
-                        document.getElementById('main-portal-view').style.display = 'flex';
-                        setupPortal();
-                        attachListeners();
-                         if (checkInInterval) clearInterval(checkInInterval);
-                        checkInInterval = setInterval(activateCheckInCodes, 60000);
-                    } else {
-                        console.log("User profile not found. Checking for setup...");
-                        const actorsCollectionRef = collection(db, `artifacts/${appId}/public/data/actors`);
-                        const actorsSnapshot = await getDocs(actorsCollectionRef);
-                        if (actorsSnapshot.empty) {
-                             document.getElementById('loading-view').style.display = 'none';
-                             document.getElementById('main-portal-view').style.display = 'flex';
-                             state.currentUser = {role: 'director', name: 'Admin'}; // Temporary admin for setup
-                             setupPortal();
-                             document.getElementById('first-time-setup-banner').classList.remove('hidden');
-                             document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                        } else {
-                             console.error("Database is set up, but your user profile was not found.");
-                        }
-                    }
 
                 } else {
-                    // User is signed out, or auth is initializing.
+                    // User is signed out or session ended
                     state.currentUser = null;
                     document.getElementById('main-portal-view').style.display = 'none';
-                    document.getElementById('loading-view').style.display = 'flex';
+                    document.getElementById('login-view').classList.replace('hidden', 'flex');
                     state.unsubscribe.forEach(unsub => unsub());
                     state.unsubscribe = [];
                     if (checkInInterval) clearInterval(checkInInterval);
-
-                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token).catch(e => {
-                            console.error("Custom token sign-in failed, trying anonymous.", e);
-                            signInAnonymously(auth);
-                        });
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    
+                    // Always try to maintain an anonymous session in the background
+                    signInAnonymously(auth).catch(error => {
+                        console.error("Anonymous sign-in failed: ", error);
+                    });
                 }
             });
 
@@ -1273,6 +1262,4 @@
     </script>
 </body>
 </html>
-
-
 
