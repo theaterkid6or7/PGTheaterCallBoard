@@ -1179,6 +1179,7 @@
              document.getElementById('main-portal-view').style.display = 'none';
              document.getElementById('login-view').classList.replace('hidden', 'flex');
              document.getElementById('login-form').reset();
+             document.getElementById('login-error').textContent = '';
              state.unsubscribe.forEach(unsub => unsub());
              state.unsubscribe = [];
              if (checkInInterval) clearInterval(checkInInterval);
@@ -1213,33 +1214,36 @@
                 const loginError = document.getElementById('login-error');
                 loginError.textContent = '';
                 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const userRef = doc(db, `artifacts/${appId}/public/data/users`, username);
-                const userSnap = await getDoc(userRef);
+                // Client-side user lookup first
+                const localUser = initialData.users.find(u => u.username === username && u.password === password);
 
-                if (userSnap.exists() && userSnap.data().password === password) {
-                    state.currentUser = userSnap.data();
+                if (localUser) {
+                    state.currentUser = localUser;
+                    
+                    if (localUser.role === 'director') {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+                        try {
+                            const configSnap = await getDoc(configRef);
+                            if (!configSnap.exists()) {
+                                document.getElementById('first-time-setup-banner').classList.remove('hidden');
+                                document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
+                            }
+                        } catch (error) {
+                             loginError.textContent = 'Permission denied. Cannot check setup status.';
+                             console.error("Permission error checking for setup:", error);
+                             return;
+                        }
+                    }
+
                     document.getElementById('login-view').classList.replace('flex', 'hidden');
                     document.getElementById('main-portal-view').style.display = 'flex';
                     setupPortal();
                     attachListeners();
                     if (checkInInterval) clearInterval(checkInInterval);
                     checkInInterval = setInterval(activateCheckInCodes, 60000);
+
                 } else {
-                    const isDirector = initialData.users.find(u => u.username === username && u.password === password && u.role === 'director');
-                    if (isDirector) {
-                         const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-                         const configSnap = await getDoc(configRef);
-                         if(!configSnap.exists()){
-                             document.getElementById('login-view').classList.replace('flex', 'hidden');
-                             document.getElementById('main-portal-view').style.display = 'flex';
-                             state.currentUser = isDirector;
-                             setupPortal();
-                             document.getElementById('first-time-setup-banner').classList.remove('hidden');
-                             document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                             return;
-                         }
-                    }
                     loginError.textContent = 'Invalid username or password.';
                 }
             });
