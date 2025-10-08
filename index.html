@@ -57,7 +57,7 @@
                 <p id="loading-text" class="text-gray-400">Authenticating...</p>
             </div>
         </div>
-        
+
         <!-- Login View -->
         <div id="login-view" class="hidden items-center justify-center min-h-screen bg-black">
             <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
@@ -67,7 +67,7 @@
                     <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
                     <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
                     <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105" disabled>Sign In</button>
+                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
                 </form>
                  <div id="first-time-setup-prompt" class="hidden mt-4 text-sm text-gray-400">
                     <p>If this is the first time running the app, please log in as a Director to initialize the database.</p>
@@ -1230,7 +1230,7 @@
         }
 
         // --- APP INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             let firebaseConfig;
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfig = JSON.parse(__firebase_config);
@@ -1252,72 +1252,80 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                         // This block runs once a user session is established (either custom token or anonymous)
-                        console.log("Firebase auth session established.");
+                const authPromise = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
+                    ? signInWithCustomToken(auth, __initial_auth_token)
+                    : signInAnonymously(auth);
+
+                authPromise.then(async (userCredential) => {
+                    console.log("Firebase auth session established.");
+                    const user = userCredential.user;
+                    const tokenResult = await user.getIdTokenResult();
+                    const username = tokenResult.claims?.username;
+
+                    if (username) {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        const userProfileRef = doc(db, `artifacts/${appId}/public/data/users`, username);
+                        const userProfileSnap = await getDoc(userProfileRef);
+
+                        if(userProfileSnap.exists()){
+                            state.currentUser = userProfileSnap.data();
+                        } else {
+                            // This might be the first time a specific user logs in
+                            // For this app's logic, we fall back to finding them in initialData
+                            state.currentUser = initialData.users.find(u => u.username === username);
+                        }
+                    }
+
+                    if(!state.currentUser){
+                         // Fallback for anonymous or user not found. This is a failsafe.
+                        // We show the login screen in this case.
                         document.getElementById('loading-view').style.display = 'none';
                         document.getElementById('login-view').classList.replace('hidden', 'flex');
                         document.getElementById('login-status').textContent = 'Please sign in to continue.';
                         document.querySelector('#login-form button').disabled = false;
-                    } else {
-                        // This should ideally not be hit if anonymous sign in works
-                        console.log("No user session. Attempting anonymous sign-in.");
-                        await signInAnonymously(auth);
+                        return;
                     }
+                    
+                    document.getElementById('loading-view').style.display = 'none';
+                    document.getElementById('main-portal-view').style.display = 'flex';
+                    setupPortal();
+                    attachListeners();
+                    if (checkInInterval) clearInterval(checkInInterval);
+                    checkInInterval = setInterval(activateCheckInCodes, 60000);
+
+                     // Check for first-time setup *after* login
+                    if (state.currentUser.role === 'director') {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
+                        try {
+                            const configSnap = await getDoc(configRef);
+                            if (!configSnap.exists()) {
+                                document.getElementById('first-time-setup-banner').classList.remove('hidden');
+                                document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
+                            }
+                        } catch (error) {
+                             console.error("Permission error checking for setup:", error);
+                             const banner = document.getElementById('first-time-setup-banner');
+                             banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
+                             banner.classList.remove('hidden');
+                        }
+                    }
+
+                }).catch(error => {
+                     console.error("Firebase auth failed during startup: ", error);
+                     const loadingText = document.getElementById('loading-text');
+                     if(loadingText) loadingText.textContent = "Connection Failed. Please refresh.";
                 });
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                     signInWithCustomToken(auth, __initial_auth_token).catch(error => {
-                        console.error("Custom token sign-in failed, trying anonymous.", error);
-                        signInAnonymously(auth);
-                     });
-                } else {
-                    signInAnonymously(auth);
-                }
-                
                 document.getElementById('login-form').addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    // This form is now a fallback, but the logic remains sound.
                     const username = document.getElementById('username').value;
                     const password = document.getElementById('password').value;
                     const loginError = document.getElementById('login-error');
-                    loginError.textContent = '';
-                    
-                    const localUser = initialData.users.find(u => u.username === username && u.password === password);
-
-                    if (localUser) {
-                        state.currentUser = localUser;
-                        
-                        document.getElementById('login-view').classList.replace('flex', 'hidden');
-                        document.getElementById('main-portal-view').style.display = 'flex';
-                        
-                        // Check for first-time setup *after* a successful director login
-                        if (localUser.role === 'director') {
-                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                            const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-                            try {
-                                const configSnap = await getDoc(configRef);
-                                if (!configSnap.exists()) {
-                                    document.getElementById('first-time-setup-banner').classList.remove('hidden');
-                                    document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                                }
-                            } catch (error) {
-                                 console.error("Permission error checking for setup:", error);
-                                 const banner = document.getElementById('first-time-setup-banner');
-                                 banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
-                                 banner.classList.remove('hidden');
-                            }
-                        }
-
-                        setupPortal();
-                        attachListeners();
-                        if (checkInInterval) clearInterval(checkInInterval);
-                        checkInInterval = setInterval(activateCheckInCodes, 60000);
-
-                    } else {
-                        loginError.textContent = 'Invalid username or password.';
-                    }
+                    loginError.textContent = 'Automatic sign-in is preferred. If you see this, please refresh the page.';
                 });
+                
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 const loadingView = document.getElementById('loading-view');
@@ -1325,7 +1333,7 @@
                      loadingView.innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not initialize the application. Please check the configuration.</p></div>`;
                 }
             }
-        });
+        };
     </script>
 </body>
 </html>
