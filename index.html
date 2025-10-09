@@ -311,24 +311,19 @@
             "Childrens Ens": ["acollins", "vgriffin", "ksterling", "gromero", "kringwood", "brussel", "lponder", "lsinglton", "brussel", "msandoval", "kreading", "jpoydras", "emorsey"],
             "Adult Ens": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "sjulien", "soneal", "rhardy", "csteadham", "jarcher", "rwilson", "jwalker", "cdiaz", "achasteen", "adam", "noliver", "lbrown", "hthompson", "dmoore", "smartin", "bfrazier"],
             "Stories": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "vgriffin", "gromero", "cadcock", "acollins", "sjulien", "lponder", "msandoval", "rhardy"],
-            "Dance Ens": ["soneal", "brussel", "cdiaz", "rwilson", "gromero", "bbenich", "sjulien", "cbeck", "ajones", "abobo", "noliver", "rhardy", "jwalker", "dmoore"],
+            "Loud Couples": ["soneal", "brussel", "cdiaz", "rwilson", "gromero", "bbenich", "sjulien", "cbeck", "ajones", "abobo", "noliver", "rhardy", "jwalker", "dmoore"],
         };
 
         // --- FIREBASE CONFIG ---
-        // *********************************************************************************
-        // IMPORTANT! To deploy this on GitHub or anywhere else, you MUST replace
-        // this object with your own Firebase project's configuration.
-        // Go to your Firebase project -> Project Settings -> General -> Your apps -> Web app
-        // and copy the firebaseConfig object here.
-        // *********************************************************************************
+        // This configuration is now using the exact details you provided.
         const firebaseConfig = {
           apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
           authDomain: "pg-theater-call-board.firebaseapp.com",
           projectId: "pg-theater-call-board",
-          storageBucket: "pg-theater-call-board.appspot.com",
+          storageBucket: "pg-theater-call-board.firebasestorage.app",
           messagingSenderId: "850857757575",
-          appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
-          measurementId: "G-ELWLH31ZCJ"
+          appId: "1:850857757575:web:15c92bb26532e146aea122",
+          measurementId: "G-BVVVEY7SYQ"
         };
         const appId = 'pg-theater-callboard-app'; // A unique ID for your app's data collections
 
@@ -600,7 +595,7 @@
                         <p class="text-white mt-1">${marker.text}</p>
                         <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
                             <span>By ${marker.author} on ${date}</span>
-                            ${canDelete ? `<button class="delete-behavior-btn text-red-500 hover:text-red-400" data-id="${item.id}">Delete</button>` : ''}
+                            ${canDelete ? `<button class="delete-behavior-btn text-red-500 hover:text-red-400" data-id="${marker.id}">Delete</button>` : ''}
                         </div>
                     </div>
                  `;
