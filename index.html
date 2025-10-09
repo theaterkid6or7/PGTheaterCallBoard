@@ -1,1340 +1,926 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Theatre Call Board</title>
+    <title>Theater Callboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #000000; /* Black */
+            background-color: #121212;
+            color: #E0C56E; /* Gold text */
         }
-        .font-display {
-            font-family: 'Playfair Display', serif;
+        .bg-gold { background-color: #E0C56E; }
+        .text-gold { color: #E0C56E; }
+        .border-gold { border-color: #E0C56E; }
+        .hover-bg-gold-dark:hover { background-color: #c9b062; }
+        .bg-dark-gray { background-color: #1E1E1E; }
+        .border-dark-gray { border-color: #2d2d2d; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            padding-top: 60px;
         }
-        .modal-backdrop {
-            background-color: rgba(0,0,0,0.75);
+        .modal-content {
+            background-color: #1E1E1E;
+            margin: 5% auto;
+            padding: 2rem;
+            border: 1px solid #E0C56E;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 0.5rem;
+            position: relative;
         }
-        /* Custom scrollbar for a more polished look */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
         }
-        ::-webkit-scrollbar-track {
-            background: #1f2937;
+        /* Tooltip for attendance reasons */
+        [data-tooltip] {
+            position: relative;
+            cursor: pointer;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #ca8a04; /* gold-500 */
-            border-radius: 4px;
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #eab308; /* gold-400 */
+        [data-tooltip]:hover::after {
+            visibility: visible;
+            opacity: 1;
         }
-
-        .bg-gray-900 { background-color: #0a0a0a; }
-        .bg-gray-800 { background-color: #1c1c1c; }
-        .bg-gray-700 { background-color: #2d2d2d; }
-        .bg-gray-600 { background-color: #444444; }
-
-        .text-gold-300 { color: #fde047; } /* yellow-300 for a bright gold */
-        .text-gold-400 { color: #facc15; } /* yellow-400 */
-        .bg-gold-600 { background-color: #ca8a04; } /* amber-600 */
-        .hover\:bg-gold-500:hover { background-color: #eab308; } /* amber-500 */
-
     </style>
 </head>
-<body class="text-gray-200 h-full overflow-hidden">
+<body class="antialiased">
 
-    <div id="app-container" class="h-full flex flex-col">
-        
-        <!-- Loading View -->
-        <div id="loading-view" class="flex items-center justify-center min-h-screen bg-black">
-            <div class="text-center p-8">
-                <h1 class="font-display text-4xl text-gold-300 mb-2 animate-pulse">Virtual Call Board</h1>
-                <p id="loading-text" class="text-gray-400">Authenticating...</p>
-            </div>
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-black">
+        <div class="bg-dark-gray p-8 rounded-lg shadow-lg w-full max-w-sm border border-gold">
+            <h1 class="text-3xl font-bold text-center text-gold mb-6">Theater Callboard</h1>
+            <div id="login-error" class="text-red-500 text-center mb-4 hidden"></div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-gold mb-2">Name</label>
+                    <input type="text" id="username" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gold" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gold mb-2">Password</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gold" required>
+                </div>
+                <button type="submit" class="w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Sign In</button>
+            </form>
         </div>
+    </div>
 
-        <!-- Login View -->
-        <div id="login-view" class="hidden items-center justify-center min-h-screen bg-black">
-            <div class="text-center p-8 bg-gray-900 rounded-xl shadow-2xl max-w-sm w-full border border-gray-700">
-                <h1 class="font-display text-4xl text-gold-300 mb-2">Welcome</h1>
-                <p id="login-status" class="text-gray-400 mb-6">Please sign in to continue.</p>
-                <form id="login-form">
-                    <input id="username" type="text" placeholder="Username" class="w-full bg-gray-800 text-white p-3 rounded mb-3 text-center border border-gray-700" required>
-                    <input id="password" type="password" placeholder="Password" class="w-full bg-gray-800 text-white p-3 rounded mb-4 text-center border border-gray-700" required>
-                    <p id="login-error" class="text-red-400 text-sm mb-4 h-5"></p>
-                    <button type="submit" class="w-full bg-gold-600 hover:bg-gold-500 text-black font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">Sign In</button>
-                </form>
-                 <div id="first-time-setup-prompt" class="hidden mt-4 text-sm text-gray-400">
-                    <p>If this is the first time running the app, please log in as a Director to initialize the database.</p>
-                </div>
+    <!-- Main App -->
+    <div id="main-app" class="hidden">
+        <header class="bg-dark-gray p-4 flex justify-between items-center border-b border-gold">
+            <div>
+                <h1 class="text-2xl font-bold text-gold">Callboard</h1>
+                <p class="text-gray-400">Welcome, <span id="user-name" class="font-semibold"></span> (<span id="user-role"></span>)</p>
             </div>
-        </div>
+            <button id="logout-button" class="bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition duration-300">Logout</button>
+        </header>
 
+        <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Announcements -->
+                <section id="announcements-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gold">Announcements</h2>
+                        <button id="add-announcement-button" class="bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300 hidden">New Announcement</button>
+                    </div>
+                    <div id="announcements-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-4">
+                        <!-- Announcements will be injected here -->
+                    </div>
+                </section>
 
-        <!-- Main Portal View -->
-        <div id="main-portal-view" class="hidden h-full flex flex-col">
-            <!-- Header -->
-            <header id="portal-header" class="p-4 shadow-lg flex justify-between items-center border-b border-gray-700">
-                <div>
-                    <h1 class="font-display text-3xl text-gold-300" id="portal-title">Portal</h1>
-                    <p class="text-sm text-gray-400">Welcome, <span id="welcome-name">User</span>!</p>
-                </div>
-                <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Log Out</button>
-            </header>
+                <!-- Calls -->
+                <section id="calls-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gold">Calls</h2>
+                        <button id="add-call-button" class="bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300 hidden">New Call</button>
+                    </div>
+                    <div id="calls-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-4">
+                        <!-- Calls will be injected here -->
+                    </div>
+                </section>
+            </div>
 
-            <!-- Main Content -->
-            <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-                <div id="first-time-setup-banner" class="hidden mb-6 bg-rose-800 border border-rose-600 p-4 rounded-lg text-center">
-                    <h3 class="font-bold text-lg text-white mb-2">First-Time Setup Required</h3>
-                    <p class="text-rose-200 mb-4">To get started, the database needs to be initialized with your company's data.</p>
-                    <button id="setup-button" class="bg-white hover:bg-gray-200 text-black font-bold py-2 px-6 rounded">Initialize Database</button>
-                </div>
-                <div id="actor-check-in-section" class="hidden mb-6"></div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                    <!-- Left Column: Attendance & Calls -->
-                    <div class="lg:col-span-1 space-y-6">
-                        <!-- Attendance Section -->
-                        <div id="attendance-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-gold-300">Attendance</h2>
-                                <div>
-                                    <button onclick="openResetModal()" class="hidden sm-director-btn bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-lg transition text-sm mr-2">Reset</button>
-                                    <button onclick="exportAttendanceReport()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-1 px-3 rounded-lg transition text-sm">Export</button>
-                                </div>
+            <!-- Right Column -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Attendance -->
+                <section id="attendance-section">
+                    <h2 class="text-2xl font-bold text-gold mb-4">Attendance</h2>
+                    <div class="bg-dark-gray p-4 rounded-lg border border-dark-gray">
+                        <div id="actor-signin-view" class="hidden space-y-4">
+                            <h3 class="text-lg font-semibold text-center">Rehearsal Sign-In</h3>
+                            <div id="signin-code-display" class="text-center p-4 border-2 border-dashed border-gold rounded-md hidden">
+                                <p class="text-gray-400">Today's Sign-In Code:</p>
+                                <p id="signin-code" class="text-4xl font-bold tracking-widest"></p>
                             </div>
-                            <div id="attendance-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                                <!-- Actor list will be rendered here -->
-                            </div>
+                             <p id="signin-code-timer" class="text-center text-gray-400">The sign-in code will appear 60 minutes before rehearsal.</p>
+                            <input type="text" id="signin-code-input" class="w-full text-center px-3 py-2 bg-gray-800 border border-gold rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gold" placeholder="Enter Code to Sign In">
+                            <button id="submit-signin-code" class="w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Sign In</button>
+                            <p id="signin-status" class="text-center font-semibold"></p>
+                            <button id="force-show-code-button" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300 hidden">Force Show Code</button>
                         </div>
-
-                        <!-- Calls Section -->
-                        <div id="calls-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-gold-300">Daily Calls</h2>
-                                <button onclick="openCallModal()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
-                            </div>
-                            <div id="call-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
-                                <!-- Call items will be rendered here -->
+                        <div id="sm-director-attendance-view" class="hidden">
+                            <h3 class="text-lg font-semibold mb-2">Attendance Roster (<span id="today-date"></span>)</h3>
+                             <div id="attendance-list" class="space-y-2 max-h-96 overflow-y-auto">
+                                <!-- Attendance list for SM/Director -->
                             </div>
                         </div>
                     </div>
-
-                    <!-- Right Column: Announcements & Behavior -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <!-- Announcements Section -->
-                        <div id="announcements-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-gold-300">Announcements</h2>
-                                <button onclick="openAnnouncementModal()" class="hidden sm-director-btn bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
-                            </div>
-                            <div id="announcement-list" class="space-y-4 max-h-[40rem] overflow-y-auto pr-2">
-                                <!-- Announcements will be rendered here -->
-                            </div>
-                        </div>
-
-                        <!-- Behavior Section -->
-                        <div id="behavior-section" class="bg-gray-900 p-6 rounded-xl shadow-lg border border-gray-800">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold font-display text-gold-300">Behavior Notes</h2>
-                                <div>
-                                    <button onclick="exportBehaviorReport()" class="hidden director-btn bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-3 rounded-lg transition text-sm mr-2">Export</button>
-                                    <button onclick="openBehaviorModal()" class="hidden sm-director-btn bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-3 rounded-lg transition text-sm">+</button>
-                                </div>
-                            </div>
-                            <div id="behavior-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
-                                <!-- Behavior notes will be rendered here -->
-                            </div>
-                        </div>
+                </section>
+                 <!-- Behavior Markers -->
+                <section id="behavior-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gold">Behavior Markers</h2>
+                        <button id="add-behavior-button" class="bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300 hidden">New Marker</button>
                     </div>
-                </div>
-            </main>
-        </div>
-
+                    <div id="behavior-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Behavior markers will be injected here -->
+                    </div>
+                </section>
+                <!-- Show Codes -->
+                <section id="show-codes-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gold">Show Codes</h2>
+                        <button id="add-show-code-button" class="bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300 hidden">New Code</button>
+                    </div>
+                    <div id="show-codes-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Show codes will be injected here -->
+                    </div>
+                </section>
+            </div>
+        </main>
     </div>
 
     <!-- Modals -->
-    <!-- Add/Edit Announcement Modal -->
-    <div id="announcement-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-md m-4 border border-gray-700">
-            <h3 id="announcement-modal-title" class="text-xl font-bold mb-4 text-gold-300">New Announcement</h3>
+    <div id="announcement-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('announcement-modal').style.display='none'">&times;</span>
+            <h3 class="text-xl font-bold text-gold mb-4">New Announcement</h3>
             <form id="announcement-form">
-                <input type="hidden" id="announcement-id">
-                <input id="announcement-title" type="text" placeholder="Title" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
-                <textarea id="announcement-content" placeholder="Details..." rows="4" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700" required></textarea>
-                <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('announcement-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Post</button>
-                </div>
+                <textarea id="announcement-text" rows="4" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gold" required placeholder="Announcement details..."></textarea>
+                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Post Announcement</button>
             </form>
         </div>
     </div>
-
-    <!-- Add/Edit Call Modal -->
-    <div id="call-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop overflow-y-auto py-10">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-lg m-4 border border-gray-700">
-            <h3 id="call-modal-title" class="text-xl font-bold mb-4 text-gold-300">New Call</h3>
+    
+    <div id="call-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('call-modal').style.display='none'">&times;</span>
+            <h3 class="text-xl font-bold text-gold mb-4">New Call</h3>
             <form id="call-form">
-                <input type="hidden" id="call-id">
-                <div class="grid grid-cols-2 gap-4 mb-3">
-                    <input id="call-date" type="date" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
-                    <input id="call-time" type="time" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <input type="date" id="call-date" class="px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
+                    <input type="time" id="call-time" class="px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
                 </div>
-                <input id="call-location" type="text" placeholder="Location (e.g., Main Stage)" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
-                <textarea id="call-notes" placeholder="Notes (e.g., Full cast, warmups at 6:45)" rows="3" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700"></textarea>
-                
                 <div class="mb-4">
-                    <h4 class="font-bold mb-2">Who's Called?</h4>
-                    <div id="call-actors-list" class="max-h-48 overflow-y-auto bg-gray-800 p-3 rounded-lg space-y-2 border border-gray-700">
-                        <!-- Actor checkboxes will be generated here -->
+                    <label class="block text-gold mb-2">Who is Called?</label>
+                    <div id="call-groups-container" class="space-y-2 max-h-40 overflow-y-auto p-2 border border-gold rounded-md">
+                        <!-- Checkboxes for groups and individuals will be inserted here -->
                     </div>
                 </div>
-
-                <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('call-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Save Call</button>
-                </div>
+                <textarea id="call-notes" rows="2" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" placeholder="Additional notes (optional)..."></textarea>
+                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Post Call</button>
             </form>
         </div>
     </div>
 
-    <!-- Add Behavior Modal -->
-    <div id="behavior-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-md m-4 border border-gray-700">
-            <h3 class="text-xl font-bold mb-4 text-gold-300">New Behavior Note</h3>
+    <div id="behavior-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('behavior-modal').style.display='none'">&times;</span>
+            <h3 class="text-xl font-bold text-gold mb-4">New Behavior Marker</h3>
             <form id="behavior-form">
-                 <div class="mb-3">
-                    <label for="behavior-subject" class="block text-sm font-medium text-gray-400 mb-1">Subject</label>
-                    <select id="behavior-subject" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
-                        <!-- Actor options will be generated here -->
-                    </select>
-                </div>
-                <input id="behavior-title" type="text" placeholder="Note Title (e.g., Lateness, Unprepared)" class="w-full bg-gray-800 text-white p-2 rounded mb-3 border border-gray-700" required>
-                <textarea id="behavior-description" placeholder="Description of behavior..." rows="3" class="w-full bg-gray-800 text-white p-2 rounded mb-4 border border-gray-700" required></textarea>
-                <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('behavior-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded">Log Note</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center border border-gray-700">
-            <h3 class="text-xl font-bold mb-4">Are you sure?</h3>
-            <p class="text-gray-400 mb-6">This action cannot be undone.</p>
-            <div class="flex justify-center gap-4">
-                <button type="button" onclick="closeModal('delete-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">Cancel</button>
-                <button id="confirm-delete-btn" type="button" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Attendance Status Modal -->
-    <div id="attendance-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 border border-gray-700">
-            <h3 id="attendance-modal-title" class="text-xl font-bold mb-4 text-gold-300">Update Attendance</h3>
-            <form id="attendance-form">
-                <input type="hidden" id="attendance-actor-id">
-                <div class="mb-3">
-                    <label for="attendance-status" class="block text-sm font-medium text-gray-400 mb-1">Status</label>
-                    <select id="attendance-status" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700" required>
-                        <option value="Present">Present</option>
-                        <option value="Absent">Absent</option>
-                        <option value="Late">Late</option>
-                        <option value="Early Departure">Early Departure</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                     <label for="attendance-reason" class="block text-sm font-medium text-gray-400 mb-1">Reason (Optional)</label>
-                    <input id="attendance-reason" type="text" placeholder="e.g., Sick, Traffic, Doctor's Appt" class="w-full bg-gray-800 text-white p-2 rounded border border-gray-700">
-                </div>
-                <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('attendance-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded">Save</button>
-                </div>
+                <select id="behavior-user-select" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white mb-2" required>
+                    <option value="">Select Person...</option>
+                </select>
+                <select id="behavior-type-select" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white mb-2" required>
+                    <option value="Positive">Positive</option>
+                    <option value="Negative">Negative</option>
+                </select>
+                <textarea id="behavior-text" rows="3" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required placeholder="Behavior details..."></textarea>
+                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Add Marker</button>
             </form>
         </div>
     </div>
 
-    <!-- Reset Confirmation Modal -->
-    <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
-        <div class="bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm m-4 text-center border border-gray-700">
-            <h3 class="text-xl font-bold mb-4 text-yellow-400">Reset Daily Attendance?</h3>
-            <p class="text-gray-400 mb-6">This will mark all actors as "Absent" and clear any existing statuses. This is intended for the start of a new rehearsal day.</p>
-            <div class="flex justify-center gap-4">
-                <button type="button" onclick="closeModal('reset-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">Cancel</button>
-                <button id="confirm-reset-btn" type="button" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded">Confirm Reset</button>
-            </div>
+    <div id="attendance-reason-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('attendance-reason-modal').style.display='none'">&times;</span>
+            <h3 id="attendance-reason-title" class="text-xl font-bold text-gold mb-4">Add Reason</h3>
+            <form id="attendance-reason-form">
+                <input type="hidden" id="attendance-reason-user">
+                 <input type="hidden" id="attendance-reason-status">
+                <textarea id="attendance-reason-text" rows="3" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required placeholder="Reason..."></textarea>
+                <div class="mt-4 flex items-center">
+                    <input type="checkbox" id="attendance-reason-excused" class="h-4 w-4 rounded border-gray-300 text-gold focus:ring-gold">
+                    <label for="attendance-reason-excused" class="ml-2 block text-sm text-gray-300">Excused</label>
+                </div>
+                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Submit Reason</button>
+            </form>
         </div>
     </div>
-    
+
+    <div id="show-code-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('show-code-modal').style.display='none'">&times;</span>
+            <h3 class="text-xl font-bold text-gold mb-4">New Show Code</h3>
+            <form id="show-code-form">
+                <input type="text" id="show-code-name" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white mb-2" required placeholder="Code Name (e.g., Paint - Main Wall)">
+                <input type="text" id="show-code-value" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required placeholder="Code Value (e.g., #FF5733 or Rosco #R33)">
+                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Add Code</button>
+            </form>
+        </div>
+    </div>
+
+
     <script type="module">
-        // --- FIREBASE SDK IMPORTS ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, writeBatch, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, deleteDoc, setDoc, query, where, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- LOCAL DATA & STATE ---
-        let checkInInterval = null;
-        let db, auth;
-
-        // This object holds the current state of the app, populated by Firebase
-        const state = {
-            currentUser: null, // Holds profile from 'users' collection
-            actors: [],
-            announcements: [],
-            calls: [],
-            behaviorNotes: [],
-            groups: {},
-            itemToDelete: { type: null, id: null },
-            unsubscribe: [], // To hold listener unsub functions
+        // --- USER DATA ---
+        const users = {
+            'lnewton': { pass: '?2@2yzz~PVJf', role: 'Director' }, 'tbeck': { pass: 'pHR68Db.Pw.#', role: 'AD/Coreography' }, 'gloshe': { pass: 'iT=hy!7G9NTf', role: 'Director' }, 
+            'bflieder': { pass: '-W9m=>D_AUzF', role: 'Tech Director' }, 'cclark': { pass: 'iJ+va7>Df}#@', role: 'ATD' }, 'ljulien': { pass: ';3y2Paz9£9?m', role: 'Stage Manager' }, 
+            'hflowers': { pass: 'i£08um?B51.x', role: 'Stage Manager' }, 'nwalker': { pass: '9^1~R7C*QVdV', role: 'Stage Manager' }, 'apate': { pass: 'y~D+V3R-37Wt', role: 'Actor' }, 
+            'cbeck': { pass: 'G?5sLRCkZYCg', role: 'Actor' }, 'sjulien': { pass: '#0Y57gk*b?Jq', role: 'Actor' }, 'agipson': { pass: 'c!?xGW2JvB:2', role: 'Actor' }, 
+            'owyatt': { pass: '9vq-B#4q]}>.', role: 'Actor' }, 'swyatt': { pass: 'B?2jjtvNqtq_', role: 'Actor' }, 'afry': { pass: '5Mxc,kQpd,!T', role: 'Actor' }, 
+            'rromero': { pass: '=4A*pq+xQq:!', role: 'Actor' }, 'gromero': { pass: 'j.dab8,6X_m2', role: 'Actor' }, 'adalton': { pass: 'N.K#K9K.F60W', role: 'Actor' }, 
+            'ajones': { pass: 'RbvA*EjQ_i1}', role: 'Actor' }, 'afooter': { pass: '3g0w]*Lt>~]D', role: 'Tech' }, 'acollins': { pass: 'MU?#03xg.GQw', role: 'Actor' }, 
+            'achasteen': { pass: '1k#VK*b~!yWA', role: 'Actor' }, 'agibson': { pass: '64KmMFCb>C.y', role: 'Actor' }, 'aaslin': { pass: 'YMDke#Pj23sV', role: 'Tech' }, 
+            'abobo': { pass: '=#.C_R.CLu1C', role: 'Actor' }, 'adavis': { pass: '5T,xB0U9?%M*', role: 'Actor' }, 'bfrazier': { pass: ']r)i]-]%6*1v', role: 'Actor' }, 
+            'bdavis': { pass: 'h)~3c4^@9oow', role: 'Tech' }, 'bbenich': { pass: 'q!o)%+h@Fz7-', role: 'Actor' }, 'brussel': { pass: 'wQnXbF1m)i=b', role: 'Actor' }, 
+            'cadcock': { pass: '1*4Y_Z*jzLBR', role: 'Actor' }, 'cdiaz': { pass: 'EJqJFWdcHE^0', role: 'Actor' }, 'csteadham': { pass: 'GAVX0G3=nvDE', role: 'Actor' }, 
+            'ckeyes': { pass: ']wmu?L4!o_D_', role: 'Actor' }, 'cgaines': { pass: 'No%vozF1d44@', role: 'Actor' }, 'dmoore': { pass: 'dQX!yDw?K3qV', role: 'Actor' }, 
+            'emorsey': { pass: 'mDet9LFtP9F:', role: 'Actor' }, 'edorsey': { pass: 'M,RA>Yv%61pB', role: 'Actor' }, 'esharp': { pass: 'ntggo}k}f0=+', role: 'Actor' }, 
+            'ebudzilowski': { pass: 'c)em]MrM~%6r', role: 'Actor' }, 'hthompson': { pass: '5LYrGQGk>}}!', role: 'Tech' }, 'iwilson': { pass: 'owJ*2#3Fs)-a', role: 'Tech' }, 
+            'jmoody': { pass: 'ipvzRL8->tq^', role: 'Actor' }, 'jteague': { pass: '}E=UxduA7oh_', role: 'Actor' }, 'jarcher': { pass: ',Te:6@8BA_r7', role: 'Actor' }, 
+            'jsamuelson': { pass: 'kv344oJxo4?3', role: 'Actor' }, 'jpoydras': { pass: 'R9f%T)3b9~19', role: 'Actor' }, 'jwalker': { pass: 'fjcxfr~PMFC9', role: 'Actor' }, 
+            'ksterling': { pass: 'FLo_b+8TRRW_', role: 'Actor' }, 'kreading': { pass: ')rqa8yEDe2PE', role: 'Actor' }, 'kbates': { pass: '8BP@Z2rNdP)v', role: 'Actor' }, 
+            'kringwood': { pass: '4gTKx.i*_Y:z', role: 'Actor' }, 'losuna': { pass: '4gTKx.i*_Y:z', role: 'Actor' }, 'lponder': { pass: 'a.F^H2}+Lrtr', role: 'Actor' }, 
+            'lsinglton': { pass: 'hZkXikzc0T~)', role: 'Actor' }, 'lbrown': { pass: '@g>63W-Y_sM@', role: 'Actor' }, 'mderrick': { pass: 'bji656Dj,Fbv', role: 'Actor' }, 
+            'grandmary': { pass: 'xWpsqQN2k=u1', role: 'Director' }, 'msandoval': { pass: '*22N2p,3Yn+=', role: 'Actor' }, 'maldridge': { pass: '5,6sQ@iGt:5?', role: 'Actor' }, 
+            'noliver': { pass: 'phrxGHh_3ovX', role: 'Tech' }, 'phall': { pass: 'mkw>9D)@m~13', role: 'Actor' }, 'rhardy': { pass: '^+bP>j0AW)4i', role: 'Actor' }, 
+            'btoland': { pass: '>X-qw0f4zk6W', role: 'Actor' }, 'rwilson': { pass: 'j~1QfR0LCY%y', role: 'Actor' }, 'soneal': { pass: '1yi~7.nef5CL', role: 'Actor' }, 
+            'smartin': { pass: 'Pb}jK35#v]5f', role: 'Actor' }, 'twashington': { pass: 'th5b*_Vq^D.+', role: 'Actor' }, 'tclenny': { pass: '43-qE-7@BrWt', role: 'Tech' }, 
+            'vgriffin': { pass: 'X..b#06ipqAJ', role: 'Actor' }, 'xmils': { pass: 'm?98uxvM^18o', role: 'Tech' }, 'yji': { pass: 'g5T}QPUMM-e4', role: 'Actor' }
+        };
+        const allUsernames = Object.keys(users).sort();
+        const groups = {
+            "Childrens Ens": ["acollins", "vgriffin", "ksterling", "gromero", "kringwood", "brussel", "lponder", "lsinglton", "brussel", "msandoval", "kreading", "jpoydras", "emorsey"],
+            "Adult Ens": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "sjulien", "soneal", "rhardy", "csteadham", "jarcher", "rwilson", "jwalker", "cdiaz", "achasteen", "adam", "noliver", "lbrown", "hthompson", "dmoore", "smartin", "bfrazier"],
+            "Stories": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "vgriffin", "gromero", "cadcock", "acollins", "sjulien", "lponder", "msandoval", "rhardy"],
+            "Dance Ens": ["soneal", "brussel", "cdiaz", "rwilson", "gromero", "bbenich", "sjulien", "cbeck", "ajones", "abobo", "noliver", "rhardy", "jwalker", "dmoore"],
         };
 
-        // --- INITIAL DATA FOR FIRST-TIME SETUP ---
-        const initialData = {
-             users: [
-                { id: 1, username: 'lnewton', password: '?2@2yzz~PVJf', role: 'director', name: 'L. Newton' },
-                { id: 2, username: 'tbeck', password: 'pHR68Db.Pw.#', role: 'sm', name: 'T. Beck' },
-                { id: 3, username: 'gloshe', password: 'iT=hy!7G9NTf', role: 'director', name: 'G. Loshe' },
-                { id: 4, username: 'bflieder', password: '-W9m=>D_AUzF', role: 'sm', name: 'B. Flieder' },
-                { id: 5, username: 'cclark', password: 'iJ+va7>Df}#@', role: 'sm', name: 'C. Clark' },
-                { id: 6, username: 'ljulien', password: ';3y2Paz9£9?m', role: 'sm', name: 'L. Julien' },
-                { id: 7, username: 'hflowers', password: 'i£08um?B51.x', role: 'sm', name: 'H. Flowers' },
-                { id: 8, username: 'nwalker', password: '9^1~R7C*QVdV', role: 'sm', name: 'N. Walker' },
-                { id: 9, username: 'apate', password: 'y~D+V3R-37Wt', role: 'actor', name: 'A. Pate' },
-                { id: 10, username: 'cbeck', password: 'G?5sLRCkZYCg', role: 'actor', name: 'C. Beck' },
-                { id: 11, username: 'sjulien', password: '#0Y57gk*b?Jq', role: 'actor', name: 'S. Julien' },
-                { id: 12, username: 'agipson', password: 'c!?xGW2JvB:2', role: 'actor', name: 'A. Gipson' },
-                { id: 13, username: 'owyatt', password: '9vq-B#4q]}>.', role: 'actor', name: 'O. Wyatt' },
-                { id: 14, username: 'swyatt', password: 'B?2jjtvNqtq_', role: 'actor', name: 'S. Wyatt' },
-                { id: 15, username: 'afry', password: '5Mxc,kQpd,!T', role: 'actor', name: 'A. Fry' },
-                { id: 16, username: 'rromero', password: '=4A*pq+xQq:!', role: 'actor', name: 'R. Romero' },
-                { id: 17, username: 'gromero', password: 'j.dab8,6X_m2', role: 'actor', name: 'G. Romero' },
-                { id: 18, username: 'adalton', password: 'N.K#K9K.F60W', role: 'actor', name: 'A. Dalton' },
-                { id: 19, username: 'ajones', password: 'RbvA*EjQ_i1}', role: 'actor', name: 'A. Jones' },
-                { id: 20, username: 'afooter', password: '3g0w]*Lt>~]D', role: 'actor', name: 'A. Footer' }, // Tech as actor role for viewing
-                { id: 21, username: 'acollins', password: 'MU?#03xg.GQw', role: 'actor', name: 'A. Collins' },
-                { id: 22, username: 'achasteen', password: '1k#VK*b~!yWA', role: 'actor', name: 'A. Chasteen' },
-                { id: 23, username: 'agibson', password: '64KmMFCb>C.y', role: 'actor', name: 'A. Gibson' },
-                { id: 24, username: 'aaslin', password: 'YMDke#Pj23sV', role: 'actor', name: 'A. Aslin' }, // Tech as actor role for viewing
-                { id: 25, username: 'abobo', password: '=#.C_R.CLu1C', role: 'actor', name: 'A. Bobo' },
-                { id: 26, username: 'adavis', password: '5T,xB0U9?%M*', role: 'actor', name: 'A. Davis' },
-                { id: 27, username: 'bfrazier', password: ']r)i]-]%6*1v', role: 'actor', name: 'B. Frazier' },
-                { id: 28, username: 'bdavis', password: 'h)~3c4^@9oow', role: 'actor', name: 'B. Davis' }, // Tech as actor role for viewing
-                { id: 29, username: 'bbenich', password: 'q!o)%+h@Fz7-', role: 'actor', name: 'B. Benich' },
-                { id: 30, username: 'brussel', password: 'wQnXbF1m)i=b', role: 'actor', name: 'B. Russel' },
-                { id: 31, username: 'cadcock', password: '1*4Y_Z*jzLBR', role: 'actor', name: 'C. Adcock' },
-                { id: 32, username: 'cdiaz', password: 'EJqJFWdcHE^0', role: 'actor', name: 'C. Diaz' },
-                { id: 33, username: 'csteadham', password: 'GAVX0G3=nvDE', role: 'actor', name: 'C. Steadham' },
-                { id: 34, username: 'ckeyes', password: ']wmu?L4!o_D_', role: 'actor', name: 'C. Keyes' },
-                { id: 35, username: 'cgaines', password: 'No%vozF1d44@', role: 'actor', name: 'C. Gaines' },
-                { id: 36, username: 'dmoore', password: 'dQX!yDw?K3qV', role: 'actor', name: 'D. Moore' },
-                { id: 37, username: 'emorsey', password: 'mDet9LFtP9F:', role: 'actor', name: 'E. Morsey' },
-                { id: 38, username: 'edorsey', password: 'M,RA>Yv%61pB', role: 'actor', name: 'E. Dorsey' },
-                { id: 39, username: 'esharp', password: 'ntggo}k}f0=+', role: 'actor', name: 'E. Sharp' },
-                { id: 40, username: 'ebudzilowski', password: 'c)em]MrM~%6r', role: 'actor', name: 'E. Budzilowski' },
-                { id: 41, username: 'hthompson', password: '5LYrGQGk>}}!', role: 'actor', name: 'H. Thompson' }, // Tech as actor role for viewing
-                { id: 42, username: 'iwilson', password: 'owJ*2#3Fs)-a', role: 'actor', name: 'I. Wilson' }, // Tech as actor role for viewing
-                { id: 43, username: 'jmoody', password: 'ipvzRL8->tq^', role: 'actor', name: 'J. Moody' },
-                { id: 44, username: 'jteague', password: '}E=UxduA7oh_', role: 'actor', name: 'J. Teague' },
-                { id: 45, username: 'jarcher', password: ',Te:6@8BA_r7', role: 'actor', name: 'J. Archer' },
-                { id: 46, username: 'jsamuelson', password: 'kv344oJxo4?3', role: 'actor', name: 'J. Samuelson' },
-                { id: 47, username: 'jpoydras', password: 'R9f%T)3b9~19', role: 'actor', name: 'J. Poydras' },
-                { id: 48, username: 'jwalker', password: 'fjcxfr~PMFC9', role: 'actor', name: 'J. Walker' },
-                { id: 49, username: 'ksterling', password: 'FLo_b+8TRRW_', role: 'actor', name: 'K. Sterling' },
-                { id: 50, username: 'kreading', password: ')rqa8yEDe2PE', role: 'actor', name: 'K. Reading' },
-                { id: 51, username: 'kbates', password: '8BP@Z2rNdP)v', role: 'actor', name: 'K. Bates' },
-                { id: 52, username: 'kringwood', password: '4gTKx.i*_Y:z', role: 'actor', name: 'K. Ringwood' },
-                { id: 53, username: 'losuna', password: '4gTKx.i*_Y:z', role: 'actor', name: 'L. Osuna' },
-                { id: 54, username: 'lponder', password: 'a.F^H2}+Lrtr', role: 'actor', name: 'L. Ponder' },
-                { id: 55, username: 'lsinglton', password: 'hZkXikzc0T~)', role: 'actor', name: 'L. Singleton' },
-                { id: 56, username: 'lbrown', password: '@g>63W-Y_sM@', role: 'actor', name: 'L. Brown' },
-                { id: 57, username: 'mderrick', password: 'bji656Dj,Fbv', role: 'actor', name: 'M. Derrick' },
-                { id: 58, username: 'grandmary', password: 'xWpsqQN2k=u1', role: 'director', name: 'Grandmary' },
-                { id: 59, username: 'msandoval', password: '*22N2p,3Yn+=', role: 'actor', name: 'M. Sandoval' },
-                { id: 60, username: 'maldridge', password: '5,6sQ@iGt:5?', role: 'actor', name: 'M. Aldridge' },
-                { id: 61, username: 'noliver', password: 'phrxGHh_3ovX', role: 'actor', name: 'N. Oliver' }, // Tech as actor role for viewing
-                { id: 62, username: 'phall', password: 'mkw>9D)@m~13', role: 'actor', name: 'P. Hall' },
-                { id: 63, username: 'rhardy', password: '^+bP>j0AW)4i', role: 'actor', name: 'R. Hardy' },
-                { id: 64, username: 'btoland', password: '>X-qw0f4zk6W', role: 'actor', name: 'B. Toland' },
-                { id: 65, username: 'rwilson', password: 'j~1QfR0LCY%y', role: 'actor', name: 'R. Wilson' },
-                { id: 66, username: 'soneal', password: '1yi~7.nef5CL', role: 'actor', name: 'S. ONeal' },
-                { id: 67, username: 'smartin', password: 'Pb}jK35#v]5f', role: 'actor', name: 'S. Martin' },
-                { id: 68, username: 'twashington', password: 'th5b*_Vq^D.+', role: 'actor', name: 'T. Washington' },
-                { id: 69, username: 'tclenny', password: '43-qE-7@BrWt', role: 'actor', name: 'T. Clenny' }, // Tech as actor role for viewing
-                { id: 70, username: 'vgriffin', password: 'X..b#06ipqAJ', role: 'actor', name: 'V. Griffin' },
-                { id: 71, username: 'xmils', password: 'm?98uxvM^18o', role: 'actor', name: 'X. Mils' }, // Tech as actor role for viewing
-                { id: 72, username: 'yji', password: 'g5T}QPUMM-e4', role: 'actor', name: 'Y. Ji' },
-            ],
-            actors: [
-                 { id: 9, name: 'A. Pate', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
-                { id: 10, name: 'C. Beck', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 11, name: 'S. Julien', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
-                { id: 12, name: 'A. Gipson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 13, name: 'O. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
-                { id: 14, name: 'S. Wyatt', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 15, name: 'A. Fry', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 16, name: 'R. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
-                { id: 17, name: 'G. Romero', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories', 'dance-ens'] },
-                { id: 18, name: 'A. Dalton', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 19, name: 'A. Jones', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
-                { id: 21, name: 'A. Collins', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 22, name: 'A. Chasteen', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 23, name: 'A. Gibson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 25, name: 'A. Bobo', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 26, name: 'A. Davis', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 27, name: 'B. Frazier', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
-                { id: 29, name: 'B. Benich', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'dance-ens'] },
-                { id: 30, name: 'B. Russel', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 31, name: 'C. Adcock', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
-                { id: 32, name: 'C. Diaz', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 33, name: 'C. Steadham', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories', 'dance-ens'] },
-                { id: 34, name: 'C. Keyes', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 35, name: 'C. Gaines', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 36, name: 'D. Moore', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
-                { id: 37, name: 'E. Morsey', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 38, name: 'E. Dorsey', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 39, name: 'E. Sharp', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 40, name: 'E. Budzilowski', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 41, name: 'H. Thompson', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'stories'] },
-                { id: 43, name: 'J. Moody', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 44, name: 'J. Teague', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 45, name: 'J. Archer', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 46, name: 'J. Samuelson', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
-                { id: 47, name: 'J. Poydras', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 48, name: 'J. Walker', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 49, name: 'K. Sterling', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 50, name: 'K. Reading', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 51, name: 'K. Bates', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 52, name: 'K. Ringwood', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 53, name: 'L. Osuna', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 54, name: 'L. Ponder', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 55, name: 'L. Singleton', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-                { id: 56, name: 'L. Brown', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 57, name: 'M. Derrick', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens'] },
-                { id: 59, name: 'M. Sandoval', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 60, name: 'M. Aldridge', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 61, name: 'N. Oliver', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens'] },
-                { id: 63, name: 'R. Hardy', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 64, name: 'B. Toland', status: 'Absent', statusReason: '', timestamp: null, groups: ['dance-ens'] },
-                { id: 65, name: 'R. Wilson', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 66, name: 'S. ONeal', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens', 'dance-ens', 'stories'] },
-                { id: 67, name: 'S. Martin', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 68, name: 'T. Washington', status: 'Absent', statusReason: '', timestamp: null, groups: [] },
-                { id: 70, name: 'V. Griffin', status: 'Absent', statusReason: '', timestamp: null, groups: ['childrens-ens', 'stories'] },
-                { id: 72, name: 'Y. Ji', status: 'Absent', statusReason: '', timestamp: null, groups: ['adult-ens'] },
-            ],
-            groups: {
-                'full-cast': 'Full Cast',
-                'childrens-ens': 'Childrens Ens',
-                'adult-ens': 'Adult Ens',
-                'stories': 'Stories',
-                'dance-ens': 'Dance Ens'
-            },
-            announcements: [
-                { id: "1", title: 'Welcome to the Production!', content: 'We are so excited to get started. Please check the call board daily for updates. Scripts are available for pickup from the SM station.', author: 'The Director' },
-                { id: "2", title: 'Costume Fittings Schedule', content: 'Fittings will be held this Wednesday. Please sign up for a time slot on the sheet posted on the physical call board.', author: 'Stage Manager' },
-            ],
-            calls: [
-                 { id: "1", date: '2025-10-07', time: '18:30', location: 'Main Stage', notes: 'Full cast read-through. Welcome!', called: ['Full Cast'], checkInCode: null, codeActive: false },
-                 { id: "2", date: '2025-10-07', time: '19:30', location: 'Dance Studio', notes: 'Dance Ensemble choreography for Act 1.', called: ['Dance Ens'], checkInCode: null, codeActive: false },
-            ],
-            behaviorNotes: [
-                { id: "1", title: 'Professionalism', description: 'A reminder to all cast and crew to arrive on time and be prepared for your calls. Let\'s respect everyone\'s time.', authorId: 1, authorName: 'L. Newton', subjectId: 'general', subjectName: 'General' },
-                { id: "2", title: 'Green Room', description: 'Please help keep the green room clean. Tidy up after yourselves. Thanks!', authorId: 2, authorName: 'T. Beck', subjectId: 'general', subjectName: 'General' },
-            ]
-        };
+        // --- FIREBASE CONFIG (using Canvas variables) ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{ "apiKey": "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY", "authDomain": "pg-theater-call-board.firebaseapp.com", "projectId": "pg-theater-call-board", "storageBucket": "pg-theater-call-board.appspot.com", "messagingSenderId": "850857757575", "appId": "1:850857757575:web:8b2f93e76b2cf008aea122" }');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- APP STATE ---
+        let currentUser = null;
+        let unsubscribeAnnouncements = null;
+        let unsubscribeCalls = null;
+        let unsubscribeAttendance = null;
+        let unsubscribeBehavior = null;
+        let unsubscribeShowCodes = null;
+        let rehearsalStartTime = new Date();
+        rehearsalStartTime.setHours(19, 0, 0, 0); // 7:00 PM
+        let signinCode = '';
+
+        // --- DOM ELEMENTS ---
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
         
-        // --- RENDER FUNCTIONS ---
-        function renderAttendance() {
-            const list = document.getElementById('attendance-list');
-            list.innerHTML = '';
-            const canEdit = state.currentUser?.role === 'sm' || state.currentUser?.role === 'director';
-            const isActor = state.currentUser?.role === 'actor';
-            
-            let actorsToRender = [...state.actors].sort((a,b) => a.name.localeCompare(b.name));
-            if(isActor) {
-                actorsToRender = state.actors.filter(a => a.id === state.currentUser.id);
-            }
-
-            if(actorsToRender.length === 0){
-                list.innerHTML = `<p class="text-gray-500 text-center">No attendance data.</p>`;
-                return;
-            }
-
-            actorsToRender.forEach(actor => {
-                let statusClass = '';
-                let statusText = actor.status;
-                switch (actor.status) {
-                    case 'Present':
-                        statusClass = 'text-green-400';
-                        break;
-                    case 'Absent':
-                        statusClass = 'text-red-400';
-                        break;
-                    case 'Late':
-                        statusClass = 'text-yellow-400';
-                        break;
-                    case 'Early Departure':
-                        statusClass = 'text-orange-400';
-                        break;
-                    default:
-                        statusClass = 'text-gray-400';
-                }
-
-                if (actor.statusReason) {
-                    statusText += ` (${actor.statusReason})`;
-                }
-
-                const actorEl = document.createElement('div');
-                actorEl.className = 'flex justify-between items-center bg-gray-800 p-3 rounded-lg';
-                if (canEdit) {
-                    actorEl.classList.add('cursor-pointer', 'hover:bg-gray-700', 'transition');
-                    actorEl.setAttribute('onclick', `openAttendanceModal(${actor.id})`);
-                }
-                
-                let timestampText = '';
-                if (actor.timestamp && actor.status !== 'Early Departure') {
-                     timestampText = ` (at ${actor.timestamp})`;
-                }
-                
-                actorEl.innerHTML = `
-                    <div>
-                        <p class="font-semibold">${actor.name}</p>
-                        <p class="text-xs ${statusClass}">${statusText}${timestampText}</p>
-                    </div>
-                    ${canEdit ? `<div class="text-gray-400">✏️</div>` : ''}
-                `;
-                list.appendChild(actorEl);
-            });
-        }
-        
-        function renderAnnouncements() {
-            const list = document.getElementById('announcement-list');
-            list.innerHTML = '';
-            const canEdit = state.currentUser?.role === 'sm' || state.currentUser?.role === 'director';
-            
-             if(state.announcements.length === 0){
-                list.innerHTML = `<p class="text-gray-500 text-center">No announcements yet.</p>`;
-                return;
-            }
-
-            [...state.announcements].reverse().forEach(ann => {
-                const editButtons = canEdit ? `
-                    <div class="absolute top-2 right-2 flex gap-2">
-                        <button onclick="openAnnouncementModal('${ann.id}')" class="text-gray-400 hover:text-white transition">✏️</button>
-                        <button onclick="confirmDelete('announcement', '${ann.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
-                    </div>
-                ` : '';
-
-                const annEl = document.createElement('div');
-                annEl.className = 'bg-gray-800 p-4 rounded-lg relative';
-                annEl.innerHTML = `
-                    ${editButtons}
-                    <h3 class="font-bold text-lg text-gold-400">${ann.title}</h3>
-                    <p class="text-sm text-gray-400 mb-2">Posted by: ${ann.author}</p>
-                    <p class="text-gray-300 whitespace-pre-wrap">${ann.content}</p>
-                `;
-                list.appendChild(annEl);
-            });
-        }
-        
-        function renderCalls() {
-            const list = document.getElementById('call-list');
-            list.innerHTML = '';
-            const user = state.currentUser;
-            const canManage = user?.role === 'sm' || user?.role === 'director';
-            
-            let callsToRender = state.calls;
-            if (user?.role === 'actor') {
-                callsToRender = state.calls.filter(call => {
-                    if (!call.called || call.called.length === 0) return false;
-                    const userActor = state.actors.find(a => a.id === user.id);
-                    if (!userActor) return false;
-
-                    const userInCalledGroup = call.called.some(groupName => {
-                         const groupKey = Object.keys(state.groups).find(key => state.groups[key] === groupName);
-                         return groupKey && userActor.groups.includes(groupKey);
-                    });
-                    
-                    return call.called.includes(userActor.name) || call.called.includes('Full Cast') || userInCalledGroup;
-                });
-            }
-
-             if(callsToRender.length === 0){
-                list.innerHTML = `<p class="text-gray-500 text-center">No calls scheduled for you.</p>`;
-                return;
-            }
-
-            [...callsToRender].reverse().forEach(call => {
-                 const editButtons = canManage ? `
-                    <div class="absolute top-2 right-2 flex gap-2">
-                        <button onclick="openCallModal('${call.id}')" class="text-gray-400 hover:text-white transition">✏️</button>
-                        <button onclick="confirmDelete('call', '${call.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
-                    </div>
-                ` : '';
-
-                const callEl = document.createElement('div');
-                callEl.className = 'bg-gray-800 p-4 rounded-lg relative';
-                const callDate = new Date(call.date + 'T00:00:00');
-                const formattedDate = callDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-                const formattedTime = new Date(`1970-01-01T${call.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                let checkInSection = '';
-                if (canManage) {
-                    if (call.codeActive) {
-                        checkInSection = `
-                        <div class="mt-3 p-2 bg-gray-900 rounded-md text-center">
-                           <p class="text-sm text-gray-400">Check-in Code:</p>
-                           <p class="text-2xl font-bold tracking-widest text-gold-300">${call.checkInCode}</p>
-                        </div>`;
-                    } else {
-                        checkInSection = `<div class="mt-3"><button onclick="forceCode('${call.id}')" class="w-full text-xs bg-gray-700 hover:bg-gray-600 p-2 rounded-md">Force Code</button></div>`;
-                    }
-                }
-
-                callEl.innerHTML = `
-                    ${editButtons}
-                    <h3 class="font-bold text-2xl">${formattedTime}</h3>
-                    <p class="text-sm font-semibold text-gold-400">${formattedDate}</p>
-                    <p class="text-md text-gray-300 mb-2">${call.location}</p>
-                    <p class="text-sm text-gray-400 mb-3">${call.notes}</p>
-                    <div class="border-t border-gray-700 pt-2">
-                        <p class="text-xs text-gray-400 font-bold uppercase">Called:</p>
-                        <p class="text-xs text-gray-300">${call.called.join(', ')}</p>
-                    </div>
-                    ${checkInSection}
-                `;
-                list.appendChild(callEl);
-            });
-        }
-
-        function renderBehaviorNotes() {
-            const list = document.getElementById('behavior-list');
-            list.innerHTML = '';
-            const user = state.currentUser;
-            let notesToDisplay = [];
-
-            if (user?.role === 'director' || user?.role === 'sm') {
-                notesToDisplay = state.behaviorNotes;
-            } else if (user?.role === 'actor') {
-                notesToDisplay = state.behaviorNotes.filter(note => note.subjectId === user.id || note.subjectId === 'general');
-            }
-            
-            if (notesToDisplay.length === 0) {
-                 list.innerHTML = `<p class="text-gray-500 text-center">No behavior notes to display.</p>`;
-                 return;
-            }
-
-            [...notesToDisplay].reverse().forEach(note => {
-                const deleteButton = user?.role === 'director' ? `
-                    <button onclick="confirmDelete('behavior', '${note.id}')" class="text-gray-400 hover:text-white transition">🗑️</button>
-                ` : '';
-                const noteEl = document.createElement('div');
-                noteEl.className = 'bg-gray-800 p-4 rounded-lg relative';
-                
-                let subjectLine = '';
-                if (user?.role === 'director' || user?.role === 'sm') {
-                    subjectLine = `<p class="text-sm text-gray-400 mb-2">Subject: ${note.subjectName} | Logged by: ${note.authorName}</p>`;
-                }
-
-                noteEl.innerHTML = `
-                    <div class="absolute top-2 right-2 flex gap-2">${deleteButton}</div>
-                    <h3 class="font-bold text-lg text-gold-400">${note.title}</h3>
-                    ${subjectLine}
-                    <p class="text-gray-300">${note.description}</p>
-                `;
-                list.appendChild(noteEl);
-            });
-        }
-        
-        function renderActorCheckInSection() {
-            const container = document.getElementById('actor-check-in-section');
-            if (state.currentUser?.role !== 'actor') {
-                container.innerHTML = '';
-                container.classList.add('hidden');
-                return;
-            }
-            
-            const activeCall = state.calls.find(c => c.codeActive);
-            if (activeCall) {
-                container.innerHTML = `
-                <div class="bg-gray-900 border border-gold-600/50 p-4 rounded-lg text-center">
-                    <h3 class="font-bold text-lg text-gold-300 mb-2">Rehearsal Check-In is Active</h3>
-                    <form id="actor-check-in-form" class="flex justify-center gap-2">
-                        <input id="check-in-code-input" type="text" placeholder="4-Digit Code" class="w-40 bg-gray-800 text-white p-2 rounded text-center tracking-widest text-lg border border-gray-700" required maxlength="4">
-                        <button type="submit" class="bg-gold-600 hover:bg-gold-500 text-black font-bold py-2 px-4 rounded">Check In</button>
-                    </form>
-                    <p id="check-in-message" class="text-sm h-4 mt-2"></p>
-                </div>
-                `;
-                container.classList.remove('hidden');
-                document.getElementById('actor-check-in-form').addEventListener('submit', handleActorCheckIn);
-            } else {
-                 container.innerHTML = '';
-                 container.classList.add('hidden');
-            }
-        }
-
-
-        function renderAll() {
-            renderAttendance();
-            renderAnnouncements();
-            renderCalls();
-            renderBehaviorNotes();
-            renderActorCheckInSection();
-        }
-
-        // --- ACTIONS ---
-        async function openAttendanceModal(actorId) {
-            const actor = state.actors.find(a => a.id === actorId);
-            if (!actor) return;
-            
-            document.getElementById('attendance-modal-title').textContent = `Update ${actor.name}`;
-            document.getElementById('attendance-actor-id').value = actor.id;
-            document.getElementById('attendance-status').value = actor.status;
-            document.getElementById('attendance-reason').value = actor.statusReason;
-            openModal('attendance-modal');
-        }
-
-        document.getElementById('attendance-form').addEventListener('submit', async function(e) {
+        // --- AUTHENTICATION ---
+        loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const actorId = parseInt(document.getElementById('attendance-actor-id').value);
-            const actor = state.actors.find(a => a.id === actorId);
-            if (!actor) return;
-            
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
-            
-            const newStatus = document.getElementById('attendance-status').value;
-            const newReason = document.getElementById('attendance-reason').value;
-            
-            const updateData = {
-                status: newStatus,
-                statusReason: newReason,
-            };
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
 
-            if (newStatus === 'Present' || newStatus === 'Late') {
-                 updateData.timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } else { // Absent or Early Departure
-                updateData.timestamp = null;
-            }
-            
-            if (newStatus === 'Present') {
-                updateData.statusReason = ''; // Clear reason if present
-            }
-            
-            try {
-                await updateDoc(actorRef, updateData);
-                closeModal('attendance-modal');
-            } catch(error){
-                console.error("Error updating attendance:", error);
-            }
-        });
-
-        document.getElementById('announcement-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const id = document.getElementById('announcement-id').value;
-            const title = document.getElementById('announcement-title').value;
-            const content = document.getElementById('announcement-content').value;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const collectionRef = collection(db, `artifacts/${appId}/public/data/announcements`);
-            
-            try {
-                if (id) { // Editing existing
-                    const docRef = doc(collectionRef, id);
-                    await updateDoc(docRef, { title, content });
-                } else { // Creating new
-                    const author = state.currentUser.role === 'director' ? 'The Director' : 'Stage Manager';
-                    await addDoc(collectionRef, { title, content, author, createdAt: new Date() });
-                }
-                closeModal('announcement-modal');
-            } catch(error) {
-                console.error("Error saving announcement:", error);
-            }
-        });
-
-        document.getElementById('call-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const id = document.getElementById('call-id').value;
-            const calledActorsAndGroups = [];
-            document.querySelectorAll('#call-actors-list input[type="checkbox"]:checked').forEach(cb => {
-                calledActorsAndGroups.push(cb.dataset.name);
-            });
-
-            const callData = {
-                date: document.getElementById('call-date').value,
-                time: document.getElementById('call-time').value,
-                location: document.getElementById('call-location').value,
-                notes: document.getElementById('call-notes').value,
-                called: calledActorsAndGroups.length > 0 ? calledActorsAndGroups : ['None specified']
-            };
-            
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const collectionRef = collection(db, `artifacts/${appId}/public/data/calls`);
-
-            try {
-                if (id) { // Editing
-                    const docRef = doc(collectionRef, id);
-                    await updateDoc(docRef, callData);
-                } else { // Creating
-                    callData.checkInCode = null;
-                    callData.codeActive = false;
-                    callData.createdAt = new Date();
-                    await addDoc(collectionRef, callData);
-                }
-                closeModal('call-modal');
-            } catch (error) {
-                console.error("Error saving call: ", error);
-            }
-        });
-
-        document.getElementById('behavior-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const subjectIdRaw = document.getElementById('behavior-subject').value;
-            const subjectId = subjectIdRaw === 'general' ? 'general' : parseInt(subjectIdRaw);
-            
-            let subjectName = 'General';
-            if(subjectId !== 'general') {
-                const subjectUser = state.actors.find(u => u.id === subjectId);
-                subjectName = subjectUser.name;
-            }
-
-            const newNote = {
-                title: document.getElementById('behavior-title').value,
-                description: document.getElementById('behavior-description').value,
-                authorId: state.currentUser.id,
-                authorName: state.currentUser.name,
-                subjectId: subjectId,
-                subjectName: subjectName,
-                createdAt: new Date(),
-            };
-            
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const collectionRef = collection(db, `artifacts/${appId}/public/data/behaviorNotes`);
-
-            try {
-                await addDoc(collectionRef, newNote);
-                closeModal('behavior-modal');
-                this.reset();
-            } catch (error) {
-                console.error("Error logging behavior note: ", error);
-            }
-        });
-
-        window.confirmDelete = (type, id) => {
-            state.itemToDelete = { type, id };
-            openModal('delete-modal');
-        }
-
-        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-            const { type, id } = state.itemToDelete;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            let collectionName = '';
-            if (type === 'announcement') collectionName = 'announcements';
-            else if (type === 'call') collectionName = 'calls';
-            else if (type === 'behavior') collectionName = 'behaviorNotes';
-            
-            if (collectionName) {
-                try {
-                    const docRef = doc(db, `artifacts/${appId}/public/data/${collectionName}`, id);
-                    await deleteDoc(docRef);
-                } catch (error) {
-                    console.error(`Error deleting ${type}:`, error);
-                }
-            }
-            closeModal('delete-modal');
-            state.itemToDelete = { type: null, id: null };
-        });
-        
-        window.openResetModal = () => {
-            openModal('reset-modal');
-        }
-
-        document.getElementById('confirm-reset-btn').addEventListener('click', async () => {
-            console.log("Resetting attendance...");
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const batch = writeBatch(db);
-            state.actors.forEach(actor => {
-                const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
-                batch.update(actorRef, {
-                    status: "Absent",
-                    statusReason: "",
-                    timestamp: null
-                });
-            });
-            try {
-                await batch.commit();
-                console.log("Attendance reset successful.");
-            } catch (error) {
-                console.error("Error resetting attendance: ", error);
-            }
-            closeModal('reset-modal');
-        });
-
-        // --- AUTH & SETUP ---
-        function setupPortal() {
-            const user = state.currentUser;
-            if (!user) return;
-
-            const portalTitle = document.getElementById('portal-title');
-            const portalHeader = document.getElementById('portal-header');
-            const smDirectorBtns = document.querySelectorAll('.sm-director-btn');
-            const directorBtns = document.querySelectorAll('.director-btn');
-            
-            document.getElementById('welcome-name').textContent = user.name;
-            portalHeader.className = 'p-4 shadow-lg flex justify-between items-center border-b border-gray-700';
-            smDirectorBtns.forEach(b => b.classList.add('hidden'));
-            directorBtns.forEach(b => b.classList.add('hidden'));
-
-            if (user.role === 'actor') {
-                portalTitle.textContent = 'Actor Portal';
-                portalHeader.classList.add('bg-gray-900');
-            } else if (user.role === 'sm') {
-                portalTitle.textContent = 'Stage Manager Portal';
-                portalHeader.classList.add('bg-gray-900');
-                smDirectorBtns.forEach(b => b.classList.remove('hidden'));
-            } else if (user.role === 'director') {
-                portalTitle.textContent = 'Director Portal';
-                portalHeader.classList.add('bg-gray-900');
-                smDirectorBtns.forEach(b => b.classList.remove('hidden'));
-                directorBtns.forEach(b => b.classList.remove('hidden'));
-            }
-        }
-        
-        async function runFirstTimeSetup() {
-            console.log("Running First-Time Database Setup...");
-            const setupButton = document.getElementById('setup-button');
-            setupButton.disabled = true;
-            setupButton.textContent = "Initializing...";
-            
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const batch = writeBatch(db);
-
-            // Set up users, mapping username to a doc
-            initialData.users.forEach(user => {
-                const userRef = doc(db, `artifacts/${appId}/public/data/users`, user.username);
-                batch.set(userRef, user);
-            });
-            
-            // Set up actors with their ID as the doc ID
-            initialData.actors.forEach(actor => {
-                const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
-                batch.set(actorRef, actor);
-            });
-
-            // Set up initial announcements, calls, etc.
-            initialData.announcements.forEach(item => {
-                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/announcements`));
-                batch.set(itemRef, {...item, createdAt: new Date()});
-            });
-            initialData.calls.forEach(item => {
-                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/calls`));
-                batch.set(itemRef, {...item, createdAt: new Date()});
-            });
-             initialData.behaviorNotes.forEach(item => {
-                const itemRef = doc(collection(db, `artifacts/${appId}/public/data/behaviorNotes`));
-                batch.set(itemRef, {...item, createdAt: new Date()});
-            });
-
-            // Add groups doc
-            const groupsRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-            batch.set(groupsRef, initialData.groups);
-
-            try {
-                await batch.commit();
-                console.log("First-Time Setup Complete!");
-                document.getElementById('first-time-setup-banner').innerHTML = `<p class="text-green-300">Database initialized successfully. Please refresh the page.</p>`;
-            } catch (e) {
-                console.error("Error during first-time setup: ", e);
-                setupButton.disabled = false;
-                setupButton.textContent = "Retry Initialization";
-            }
-        }
-
-        // --- LISTENERS ---
-        function attachListeners() {
-             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-            // Detach any existing listeners
-            state.unsubscribe.forEach(unsub => unsub());
-            state.unsubscribe = [];
-
-            const qActors = query(collection(db, `artifacts/${appId}/public/data/actors`));
-            state.unsubscribe.push(onSnapshot(qActors, (snapshot) => {
-                state.actors = snapshot.docs.map(doc => ({ ...doc.data(), id: parseInt(doc.id) }));
-                renderAttendance();
-                populateBehaviorSubjectDropdown();
-            }, (error) => console.error("Actor listener error:", error) ));
-
-            const qAnnouncements = query(collection(db, `artifacts/${appId}/public/data/announcements`));
-            state.unsubscribe.push(onSnapshot(qAnnouncements, (snapshot) => {
-                state.announcements = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                renderAnnouncements();
-            }, (error) => console.error("Announcement listener error:", error) ));
-            
-            const qCalls = query(collection(db, `artifacts/${appId}/public/data/calls`));
-            state.unsubscribe.push(onSnapshot(qCalls, (snapshot) => {
-                state.calls = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                activateCheckInCodes(); // This will re-render calls and check-in
-            }, (error) => console.error("Call listener error:", error) ));
-            
-            const qBehavior = query(collection(db, `artifacts/${appId}/public/data/behaviorNotes`));
-            state.unsubscribe.push(onSnapshot(qBehavior, (snapshot) => {
-                state.behaviorNotes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                renderBehaviorNotes();
-            }, (error) => console.error("Behavior listener error:", error) ));
-            
-            // Listener for groups
-            const groupsRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-             state.unsubscribe.push(onSnapshot(groupsRef, (doc) => {
-                if (doc.exists()) {
-                    state.groups = doc.data();
-                }
-            }, (error) => console.error("Groups listener error:", error) ));
-        }
-
-        // --- MODAL CONTROLS ---
-        window.openModal = (modalId) => document.getElementById(modalId).classList.replace('hidden', 'flex');
-        window.closeModal = (modalId) => document.getElementById(modalId).classList.replace('flex', 'hidden');
-        
-        window.openAnnouncementModal = async (id = null) => {
-            const form = document.getElementById('announcement-form');
-            form.reset();
-            const modalTitle = document.getElementById('announcement-modal-title');
-            document.getElementById('announcement-id').value = '';
-            if (id) {
-                const ann = state.announcements.find(a => a.id === id);
-                if(ann) {
-                    modalTitle.textContent = "Edit Announcement";
-                    document.getElementById('announcement-id').value = ann.id;
-                    document.getElementById('announcement-title').value = ann.title;
-                    document.getElementById('announcement-content').value = ann.content;
-                }
+            if (users[username] && users[username].pass === password) {
+                currentUser = {
+                    name: username,
+                    role: users[username].role,
+                };
+                sessionStorage.setItem('theaterUser', JSON.stringify(currentUser));
+                initializeAppState();
             } else {
-                modalTitle.textContent = "New Announcement";
-            }
-            openModal('announcement-modal');
-        }
-        
-        window.openCallModal = async (id = null) => {
-            const form = document.getElementById('call-form');
-            form.reset();
-            const modalTitle = document.getElementById('call-modal-title');
-            populateActorCheckboxes();
-            document.getElementById('call-id').value = '';
-
-            if(id) {
-                const call = state.calls.find(c => c.id === id);
-                if(call) {
-                    modalTitle.textContent = "Edit Call";
-                    document.getElementById('call-id').value = call.id;
-                    document.getElementById('call-date').value = call.date;
-                    document.getElementById('call-time').value = call.time;
-                    document.getElementById('call-location').value = call.location;
-                    document.getElementById('call-notes').value = call.notes;
-                    
-                    document.querySelectorAll('#call-actors-list input[type="checkbox"]').forEach(cb => {
-                        if(call.called.includes(cb.dataset.name)) {
-                            cb.checked = true;
-                        }
-                    });
-                }
-            } else {
-                modalTitle.textContent = "New Call";
-                document.getElementById('call-date').valueAsDate = new Date(); // Default to today
-            }
-            openModal('call-modal');
-        }
-
-        window.openBehaviorModal = () => {
-            document.getElementById('behavior-form').reset();
-            populateBehaviorSubjectDropdown();
-            openModal('behavior-modal');
-        }
-
-        function populateBehaviorSubjectDropdown() {
-            const select = document.getElementById('behavior-subject');
-            select.innerHTML = '<option value="general">General Note</option>';
-            state.actors.forEach(actor => {
-                const option = document.createElement('option');
-                option.value = actor.id;
-                option.textContent = actor.name;
-                select.appendChild(option);
-            });
-        }
-
-        function populateActorCheckboxes() {
-            const list = document.getElementById('call-actors-list');
-            list.innerHTML = '';
-            // Add group selectors
-            Object.keys(state.groups).forEach(key => {
-                const groupEl = document.createElement('div');
-                groupEl.innerHTML = `<label class="flex items-center space-x-2 font-bold text-gold-400">
-                    <input type="checkbox" onchange="selectGroup(event, '${key}')" data-name="${state.groups[key]}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-gold-600 focus:ring-gold-600">
-                    <span>${state.groups[key]}</span>
-                </label>`;
-                list.appendChild(groupEl);
-            });
-             list.innerHTML += `<hr class="border-gray-700 my-2">`;
-            // Add individual actors
-            state.actors.forEach(actor => {
-                const actorEl = document.createElement('div');
-                actorEl.innerHTML = `<label class="flex items-center space-x-2">
-                    <input type="checkbox" name="actor" value="${actor.id}" data-name="${actor.name}" data-groups="${actor.groups.join(' ')}" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-gold-600 focus:ring-gold-600">
-                    <span>${actor.name}</span>
-                </label>`;
-                list.appendChild(actorEl);
-            });
-        }
-
-        window.selectGroup = (event, groupKey) => {
-            const actorCheckboxes = document.querySelectorAll('#call-actors-list input[name="actor"]');
-            const shouldBeChecked = event.target.checked;
-            if (groupKey === 'full-cast') {
-                actorCheckboxes.forEach(cb => cb.checked = shouldBeChecked);
-            } else {
-                actorCheckboxes.forEach(cb => {
-                    if (cb.dataset.groups.includes(groupKey)) {
-                        cb.checked = shouldBeChecked;
-                    }
-                });
-            }
-        }
-        
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal('announcement-modal');
-                closeModal('call-modal');
-                closeModal('behavior-modal');
-                closeModal('delete-modal');
-                closeModal('attendance-modal');
-                closeModal('reset-modal');
+                loginError.textContent = 'Invalid username or password.';
+                loginError.classList.remove('hidden');
             }
         });
 
-        // --- CHECK IN AND EXPORT LOGIC ---
-        function generateCheckInCode() {
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
+        document.getElementById('logout-button').addEventListener('click', () => {
+            currentUser = null;
+            sessionStorage.removeItem('theaterUser');
+            // Detach listeners
+            if (unsubscribeAnnouncements) unsubscribeAnnouncements();
+            if (unsubscribeCalls) unsubscribeCalls();
+            if (unsubscribeAttendance) unsubscribeAttendance();
+            if (unsubscribeBehavior) unsubscribeBehavior();
+            if (unsubscribeShowCodes) unsubscribeShowCodes();
 
-        async function activateCheckInCodes() {
-            const now = new Date();
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-            for (const call of state.calls) {
-                const callTime = new Date(`${call.date}T${call.time}`);
-                const diffMinutes = (callTime - now) / (1000 * 60);
-                const shouldBeActive = diffMinutes <= 60 && diffMinutes > -180;
-                
-                if (shouldBeActive && !call.codeActive) {
-                    const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
-                    await updateDoc(callRef, {
-                        codeActive: true,
-                        checkInCode: generateCheckInCode()
-                    });
-                } else if (!shouldBeActive && call.codeActive) {
-                    const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
-                    await updateDoc(callRef, { codeActive: false });
-                }
-            }
-        }
-        
-        window.forceCode = async (callId) => {
-            const call = state.calls.find(c => c.id === callId);
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            if(call) {
-                const callRef = doc(db, `artifacts/${appId}/public/data/calls`, call.id);
-                await updateDoc(callRef, {
-                    codeActive: true,
-                    checkInCode: generateCheckInCode()
-                });
-            }
-        }
-        
-        async function handleActorCheckIn(e) {
-            e.preventDefault();
-            const input = document.getElementById('check-in-code-input');
-            const messageEl = document.getElementById('check-in-message');
-            const enteredCode = input.value;
-            const activeCall = state.calls.find(c => c.codeActive && String(c.checkInCode).trim() === String(enteredCode).trim());
-
-            if (activeCall) {
-                const actor = state.actors.find(a => a.id === state.currentUser.id);
-                
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const actorRef = doc(db, `artifacts/${appId}/public/data/actors`, actor.id.toString());
-                
-                await updateDoc(actorRef, {
-                    status: 'Present',
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
-
-                messageEl.textContent = 'Successfully checked in!';
-                messageEl.className = "text-sm h-4 mt-2 text-green-400";
-                input.disabled = true;
-                e.target.querySelector('button').disabled = true;
-            } else {
-                messageEl.textContent = 'Invalid code. Please try again.';
-                messageEl.className = "text-sm h-4 mt-2 text-red-400";
-            }
-        }
-        
-        function downloadCSV(csvContent, filename) {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.exportAttendanceReport = () => {
-            let csv = "Name,Status,Reason,Timestamp\n";
-            state.actors.forEach(actor => {
-                csv += `${actor.name},${actor.status},"${actor.statusReason || ''}",${actor.timestamp || ''}\n`;
-            });
-            downloadCSV(csv, `attendance_report_${new Date().toISOString().slice(0,10)}.csv`);
-        }
-        
-        window.exportBehaviorReport = () => {
-            let csv = "Date,Subject,Title,Description,Logged By\n";
-            state.behaviorNotes.forEach(note => {
-                const noteDate = note.createdAt.toDate().toISOString().slice(0,10);
-                csv += `${noteDate},${note.subjectName},"${note.title}","${note.description}",${note.authorName}\n`;
-            });
-            downloadCSV(csv, `behavior_report_${new Date().toISOString().slice(0,10)}.csv`);
-        }
-        
-        window.logout = () => {
-             // We don't sign out from Firebase anonymous auth, just reset the app state
-             state.currentUser = null;
-             document.getElementById('main-portal-view').style.display = 'none';
-             document.getElementById('login-view').classList.replace('hidden', 'flex');
-             document.getElementById('login-form').reset();
-             document.getElementById('login-error').textContent = '';
-             state.unsubscribe.forEach(unsub => unsub());
-             state.unsubscribe = [];
-             if (checkInInterval) clearInterval(checkInInterval);
-        }
+            mainApp.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+        });
 
         // --- APP INITIALIZATION ---
-        window.onload = () => {
-            let firebaseConfig;
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                firebaseConfig = JSON.parse(__firebase_config);
+        async function initializeAppState() {
+            if (!currentUser) return;
+            
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) {
+                console.error("Firebase sign-in failed: ", e);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user && currentUser) {
+                console.log("Firebase user signed in:", user.uid);
+                loginScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                setupUIForUser();
+                attachFirestoreListeners();
             } else {
-                console.warn("Firebase environment configuration not found. Using fallback credentials.");
-                firebaseConfig = {
-                    apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
-                    authDomain: "pg-theater-call-board.firebaseapp.com",
-                    projectId: "pg-theater-call-board",
-                    storageBucket: "pg-theater-call-board.firebasestorage.app",
-                    messagingSenderId: "850857757575",
-                    appId: "1:850857757575:web:8b2f93e76b2cf008aea122",
-                    measurementId: "G-ELWLH31ZCJ"
-                };
+                console.log("No Firebase user.");
+            }
+        });
+
+        // --- UI SETUP ---
+        function setupUIForUser() {
+            document.getElementById('user-name').textContent = currentUser.name;
+            document.getElementById('user-role').textContent = currentUser.role;
+
+            const isDirector = currentUser.role === 'Director';
+            const isStageManager = currentUser.role === 'Stage Manager';
+            
+            // Show/hide buttons based on role
+            document.getElementById('add-announcement-button').classList.toggle('hidden', !(isDirector || isStageManager));
+            document.getElementById('add-call-button').classList.toggle('hidden', !(isDirector || isStageManager));
+            document.getElementById('add-behavior-button').classList.toggle('hidden', !(isDirector || isStageManager));
+            document.getElementById('add-show-code-button').classList.toggle('hidden', !(isDirector || isStageManager));
+            document.getElementById('force-show-code-button').classList.toggle('hidden', !isDirector);
+
+            // Setup attendance view
+            const actorView = document.getElementById('actor-signin-view');
+            const smView = document.getElementById('sm-director-attendance-view');
+            if (isDirector || isStageManager) {
+                actorView.classList.add('hidden');
+                smView.classList.remove('hidden');
+                renderFullAttendanceList();
+            } else {
+                smView.classList.add('hidden');
+                actorView.classList.remove('hidden');
+            }
+            
+            // Populate behavior user select
+            const userSelect = document.getElementById('behavior-user-select');
+            userSelect.innerHTML = '<option value="">Select Person...</option>';
+            allUsernames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                userSelect.appendChild(option);
+            });
+
+            // Populate call groups select
+            populateCallGroups();
+        }
+        
+        function populateCallGroups() {
+            const container = document.getElementById('call-groups-container');
+            container.innerHTML = '';
+            
+            const createCheckbox = (id, value, label, isGroup = false) => `
+                <div class="flex items-center">
+                    <input type="checkbox" id="${id}" value="${value}" name="${isGroup ? 'group' : 'individual'}" class="h-4 w-4 rounded border-gray-300 text-gold focus:ring-gold">
+                    <label for="${id}" class="ml-2 block text-sm ${isGroup ? 'font-bold' : 'text-gray-300'}">${label}</label>
+                </div>`;
+            
+            container.innerHTML += createCheckbox('group-fullcast', 'Full Cast', 'Full Cast', true);
+            
+            Object.keys(groups).sort().forEach(groupName => {
+                container.innerHTML += createCheckbox(`group-${groupName.replace(/\s+/g, '')}`, groupName, groupName, true);
+            });
+
+            container.innerHTML += `<hr class="border-gray-600 my-2">`; // Separator
+            
+            allUsernames.forEach(name => {
+                container.innerHTML += createCheckbox(`individual-${name}`, name, name, false);
+            });
+        }
+        
+        // --- FIRESTORE LISTENERS ---
+        function attachFirestoreListeners() {
+            const todayStr = getTodayString();
+            
+            // Announcements
+            const announcementsRef = collection(db, 'artifacts', appId, 'public', 'data', 'announcements');
+            unsubscribeAnnouncements = onSnapshot(query(announcementsRef), (snapshot) => {
+                const announcements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.timestamp - a.timestamp);
+                renderAnnouncements(announcements);
+            });
+
+            // Calls
+            const callsRef = collection(db, 'artifacts', appId, 'public', 'data', 'calls');
+            unsubscribeCalls = onSnapshot(query(callsRef), (snapshot) => {
+                const calls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.callDateTime - a.callDateTime);
+                renderCalls(calls);
+            });
+            
+            // Attendance
+            const attendanceRef = collection(db, 'artifacts', appId, 'public', 'data', 'attendance', todayStr, 'users');
+            unsubscribeAttendance = onSnapshot(attendanceRef, (snapshot) => {
+                const attendanceData = {};
+                snapshot.docs.forEach(doc => {
+                    attendanceData[doc.id] = doc.data();
+                });
+                updateAttendanceUI(attendanceData);
+            });
+
+            // Behavior
+            const behaviorRef = collection(db, 'artifacts', appId, 'public', 'data', 'behavior');
+            unsubscribeBehavior = onSnapshot(query(behaviorRef), (snapshot) => {
+                 const markers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.timestamp - a.timestamp);
+                 renderBehaviorMarkers(markers);
+            });
+
+            // Show Codes
+            const showCodesRef = collection(db, 'artifacts', appId, 'public', 'data', 'show_codes');
+            unsubscribeShowCodes = onSnapshot(query(showCodesRef), (snapshot) => {
+                const codes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.name.localeCompare(b.name));
+                renderShowCodes(codes);
+            });
+        }
+
+        // --- RENDERING FUNCTIONS ---
+        function renderAnnouncements(announcements) {
+            const list = document.getElementById('announcements-list');
+            list.innerHTML = '';
+            if (announcements.length === 0) {
+                list.innerHTML = `<p class="text-gray-400">No announcements yet.</p>`;
+                return;
+            }
+            announcements.forEach(item => {
+                const canDelete = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
+                const date = item.timestamp?.toDate().toLocaleString() || 'just now';
+                list.innerHTML += `
+                    <div class="p-3 bg-gray-800 rounded-md">
+                        <p class="text-white whitespace-pre-wrap">${item.text}</p>
+                        <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
+                            <span>By ${item.author} on ${date}</span>
+                            ${canDelete ? `<button class="delete-announcement-btn text-red-500 hover:text-red-400" data-id="${item.id}">Delete</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderCalls(calls) {
+            const list = document.getElementById('calls-list');
+            list.innerHTML = '';
+             if (calls.length === 0) {
+                list.innerHTML = `<p class="text-gray-400">No calls have been posted.</p>`;
+                return;
+            }
+            calls.forEach(item => {
+                const canDelete = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
+                const callDate = item.callDateTime?.toDate();
+                if (!callDate) return;
+
+                const formattedDate = callDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                const formattedTime = callDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+                let calledText = '';
+                if(item.called.groups?.includes("Full Cast")) {
+                    calledText = '<strong>Full Cast</strong>';
+                } else {
+                    const allCalled = [...(item.called.groups || []), ...(item.called.individuals || [])];
+                    calledText = allCalled.join(', ');
+                }
+
+                 list.innerHTML += `
+                    <div class="p-3 bg-gray-800 rounded-md">
+                        <p class="text-white">
+                            <strong class="text-gold">${formattedDate} at ${formattedTime}:</strong> 
+                            <span>${calledText}</span>
+                        </p>
+                        ${item.notes ? `<p class="text-gray-300 mt-1 text-sm italic">Note: ${item.notes}</p>`: ''}
+                        <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
+                             <span>Posted by ${item.author}</span>
+                            ${canDelete ? `<button class="delete-call-btn text-red-500 hover:text-red-400" data-id="${item.id}">Delete</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function renderBehaviorMarkers(markers) {
+            const list = document.getElementById('behavior-list');
+            list.innerHTML = '';
+            const canSeeAll = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
+            const canDelete = currentUser.role === 'Director';
+
+            const userMarkers = markers.filter(m => canSeeAll || m.user === currentUser.name);
+
+            if (userMarkers.length === 0) {
+                list.innerHTML = `<p class="text-gray-400">No behavior markers to show.</p>`;
+                return;
+            }
+            
+            userMarkers.forEach(marker => {
+                 const date = marker.timestamp?.toDate().toLocaleString() || 'just now';
+                 const colorClass = marker.type === 'Positive' ? 'text-green-400' : 'text-red-400';
+                 list.innerHTML += `
+                    <div class="p-3 bg-gray-800 rounded-md text-sm">
+                        <p class="font-bold ${colorClass}">${marker.type} marker for ${marker.user}</p>
+                        <p class="text-white mt-1">${marker.text}</p>
+                        <div class="text-xs text-gray-500 mt-2 flex justify-between items-center">
+                            <span>By ${marker.author} on ${date}</span>
+                            ${canDelete ? `<button class="delete-behavior-btn text-red-500 hover:text-red-400" data-id="${marker.id}">Delete</button>` : ''}
+                        </div>
+                    </div>
+                 `;
+            });
+        }
+
+        function renderShowCodes(codes) {
+            const list = document.getElementById('show-codes-list');
+            list.innerHTML = '';
+            const canDelete = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
+
+            if (codes.length === 0) {
+                list.innerHTML = `<p class="text-gray-400">No show codes have been added.</p>`;
+                return;
+            }
+            
+            codes.forEach(code => {
+                list.innerHTML += `
+                    <div class="p-3 bg-gray-800 rounded-md text-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-white">${code.name}</p>
+                                <p class="text-gold mt-1">${code.value}</p>
+                            </div>
+                            ${canDelete ? `<button class="delete-show-code-btn text-red-500 hover:text-red-400 text-xs" data-id="${code.id}">DELETE</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function renderFullAttendanceList() {
+            const list = document.getElementById('attendance-list');
+            list.innerHTML = '';
+            allUsernames.forEach(name => {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center p-2 bg-gray-800 rounded" id="attendance-row-${name}">
+                        <span class="text-white">${name}</span>
+                        <div class="flex items-center gap-2">
+                             <span id="reason-icon-${name}" class="hidden" data-tooltip="">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill text-blue-400" viewBox="0 0 16 16">
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm font-semibold text-gray-500" id="status-${name}">Not Marked</span>
+                            <select class="attendance-select bg-gray-700 text-white rounded p-1 text-xs" data-user="${name}">
+                                <option value="Present">Present</option>
+                                <option value="Tardy">Tardy</option>
+                                <option value="Absent">Absent</option>
+                                <option value="Left Early">Left Early</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function updateAttendanceUI(attendanceData) {
+            // Actor view
+            const myStatus = attendanceData[currentUser.name];
+            const statusEl = document.getElementById('signin-status');
+            if (myStatus) {
+                statusEl.textContent = `You are marked: ${myStatus.status}`;
+                if (myStatus.status === 'Present') statusEl.className = 'text-center font-semibold text-green-400';
+                else if (myStatus.status === 'Tardy') statusEl.className = 'text-center font-semibold text-yellow-400';
+                else statusEl.className = 'text-center font-semibold text-red-400';
+                document.getElementById('signin-code-input').disabled = true;
+                document.getElementById('submit-signin-code').disabled = true;
+            } else {
+                 statusEl.textContent = "You have not signed in yet.";
+                 statusEl.className = 'text-center font-semibold text-gray-400';
             }
 
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
+            // SM/Director View
+            allUsernames.forEach(name => {
+                const data = attendanceData[name];
+                const statusRow = document.getElementById(`status-${name}`);
+                const reasonIcon = document.getElementById(`reason-icon-${name}`);
                 
-                const authPromise = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
-                    ? signInWithCustomToken(auth, __initial_auth_token)
-                    : signInAnonymously(auth);
+                if (statusRow) {
+                    if (data) {
+                        statusRow.textContent = data.status;
+                        if (data.status === 'Present') statusRow.className = 'text-sm font-semibold text-green-400';
+                        else if (data.status === 'Tardy') statusRow.className = 'text-sm font-semibold text-yellow-400';
+                        else statusRow.className = 'text-sm font-semibold text-red-400';
 
-                authPromise.then(async (userCredential) => {
-                    console.log("Firebase auth session established.");
-                    const user = userCredential.user;
-                    const tokenResult = await user.getIdTokenResult();
-                    const username = tokenResult.claims?.username;
-
-                    if (username) {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        const userProfileRef = doc(db, `artifacts/${appId}/public/data/users`, username);
-                        const userProfileSnap = await getDoc(userProfileRef);
-
-                        if(userProfileSnap.exists()){
-                            state.currentUser = userProfileSnap.data();
+                        if (data.reason) {
+                            reasonIcon.classList.remove('hidden');
+                            reasonIcon.dataset.tooltip = data.reason;
                         } else {
-                            // This might be the first time a specific user logs in
-                            // For this app's logic, we fall back to finding them in initialData
-                            state.currentUser = initialData.users.find(u => u.username === username);
+                            reasonIcon.classList.add('hidden');
                         }
-                    }
 
-                    if(!state.currentUser){
-                         // Fallback for anonymous or user not found. This is a failsafe.
-                        // We show the login screen in this case.
-                        document.getElementById('loading-view').style.display = 'none';
-                        document.getElementById('login-view').classList.replace('hidden', 'flex');
-                        document.getElementById('login-status').textContent = 'Please sign in to continue.';
-                        document.querySelector('#login-form button').disabled = false;
-                        return;
+                    } else {
+                        statusRow.textContent = "Not Marked";
+                        statusRow.className = 'text-sm font-semibold text-gray-500';
+                        reasonIcon.classList.add('hidden');
                     }
-                    
-                    document.getElementById('loading-view').style.display = 'none';
-                    document.getElementById('main-portal-view').style.display = 'flex';
-                    setupPortal();
-                    attachListeners();
-                    if (checkInInterval) clearInterval(checkInInterval);
-                    checkInInterval = setInterval(activateCheckInCodes, 60000);
+                }
+            });
+        }
 
-                     // Check for first-time setup *after* login
-                    if (state.currentUser.role === 'director') {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        const configRef = doc(db, `artifacts/${appId}/public/data/config`, "groups");
-                        try {
-                            const configSnap = await getDoc(configRef);
-                            if (!configSnap.exists()) {
-                                document.getElementById('first-time-setup-banner').classList.remove('hidden');
-                                document.getElementById('setup-button').addEventListener('click', runFirstTimeSetup);
-                            }
-                        } catch (error) {
-                             console.error("Permission error checking for setup:", error);
-                             const banner = document.getElementById('first-time-setup-banner');
-                             banner.innerHTML = `<p class="text-red-300">Could not check database status. Permissions may be incorrect.</p>`;
-                             banner.classList.remove('hidden');
-                        }
-                    }
 
-                }).catch(error => {
-                     console.error("Firebase auth failed during startup: ", error);
-                     const loadingText = document.getElementById('loading-text');
-                     if(loadingText) loadingText.textContent = "Connection Failed. Please refresh.";
+        // --- EVENT HANDLERS ---
+        // Modals
+        document.getElementById('add-announcement-button').addEventListener('click', () => document.getElementById('announcement-modal').style.display = 'block');
+        document.getElementById('add-call-button').addEventListener('click', () => document.getElementById('call-modal').style.display = 'block');
+        document.getElementById('add-behavior-button').addEventListener('click', () => document.getElementById('behavior-modal').style.display = 'block');
+        document.getElementById('add-show-code-button').addEventListener('click', () => document.getElementById('show-code-modal').style.display = 'block');
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+        
+        // Forms
+        document.getElementById('announcement-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('announcement-text').value;
+            const announcementsRef = collection(db, 'artifacts', appId, 'public', 'data', 'announcements');
+            await addDoc(announcementsRef, {
+                text: text,
+                author: currentUser.name,
+                timestamp: serverTimestamp()
+            });
+            e.target.reset();
+            document.getElementById('announcement-modal').style.display = 'none';
+        });
+
+        document.getElementById('call-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('call-date').value;
+            const time = document.getElementById('call-time').value;
+            const notes = document.getElementById('call-notes').value;
+
+            if (!date || !time) {
+                alert("Please select a date and time for the call.");
+                return;
+            }
+            const callDateTime = new Date(`${date}T${time}`);
+
+            const selectedGroups = Array.from(document.querySelectorAll('#call-groups-container input[name="group"]:checked')).map(el => el.value);
+            const selectedIndividuals = Array.from(document.querySelectorAll('#call-groups-container input[name="individual"]:checked')).map(el => el.value);
+
+            if(selectedGroups.length === 0 && selectedIndividuals.length === 0) {
+                alert("Please select who is called.");
+                return;
+            }
+
+            const callsRef = collection(db, 'artifacts', appId, 'public', 'data', 'calls');
+            await addDoc(callsRef, {
+                callDateTime: Timestamp.fromDate(callDateTime),
+                called: {
+                    groups: selectedGroups,
+                    individuals: selectedIndividuals,
+                },
+                notes: notes,
+                author: currentUser.name,
+                timestamp: serverTimestamp()
+            });
+            e.target.reset();
+            document.getElementById('call-modal').style.display = 'none';
+        });
+
+        document.getElementById('behavior-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('behavior-user-select').value;
+            const type = document.getElementById('behavior-type-select').value;
+            const text = document.getElementById('behavior-text').value;
+            if(!user) { alert("Please select a person."); return; }
+            const behaviorRef = collection(db, 'artifacts', appId, 'public', 'data', 'behavior');
+            await addDoc(behaviorRef, {
+                user, type, text,
+                author: currentUser.name,
+                timestamp: serverTimestamp()
+            });
+            e.target.reset();
+            document.getElementById('behavior-modal').style.display = 'none';
+        });
+
+        document.getElementById('show-code-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('show-code-name').value;
+            const value = document.getElementById('show-code-value').value;
+            const showCodesRef = collection(db, 'artifacts', appId, 'public', 'data', 'show_codes');
+            await addDoc(showCodesRef, {
+                name,
+                value,
+                author: currentUser.name,
+                timestamp: serverTimestamp()
+            });
+            e.target.reset();
+            document.getElementById('show-code-modal').style.display = 'none';
+        });
+        
+        document.getElementById('attendance-reason-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userName = document.getElementById('attendance-reason-user').value;
+            const status = document.getElementById('attendance-reason-status').value;
+            const reason = document.getElementById('attendance-reason-text').value;
+            const excused = document.getElementById('attendance-reason-excused').checked;
+            
+            const todayStr = getTodayString();
+            const userAttendanceRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', todayStr, 'users', userName);
+            await setDoc(userAttendanceRef, { 
+                status: status, 
+                reason: reason,
+                excused: excused,
+                markedBy: currentUser.name, 
+                timestamp: serverTimestamp() 
+            });
+
+            // Auto-generate behavior marker for unexcused issues
+            if (!excused && (status === 'Absent' || status === 'Tardy')) {
+                const behaviorRef = collection(db, 'artifacts', appId, 'public', 'data', 'behavior');
+                await addDoc(behaviorRef, {
+                    user: userName,
+                    type: 'Negative',
+                    text: `Unexcused ${status} on ${new Date().toLocaleDateString()}. Reason: ${reason}`,
+                    author: 'System',
+                    timestamp: serverTimestamp()
                 });
+            }
 
-                document.getElementById('login-form').addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    // This form is now a fallback, but the logic remains sound.
-                    const username = document.getElementById('username').value;
-                    const password = document.getElementById('password').value;
-                    const loginError = document.getElementById('login-error');
-                    loginError.textContent = 'Automatic sign-in is preferred. If you see this, please refresh the page.';
-                });
-                
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                const loadingView = document.getElementById('loading-view');
-                if (loadingView) {
-                     loadingView.innerHTML = `<div class="text-center p-8"><h1 class="font-display text-4xl text-red-400 mb-2">Error</h1><p class="text-gray-400">Could not initialize the application. Please check the configuration.</p></div>`;
+            e.target.reset();
+            document.getElementById('attendance-reason-modal').style.display = 'none';
+        });
+
+
+        // Deletes
+        document.addEventListener('click', async (e) => {
+            if(e.target.classList.contains('delete-announcement-btn')) {
+                const id = e.target.dataset.id;
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'announcements', id));
+            }
+            if(e.target.classList.contains('delete-call-btn')) {
+                const id = e.target.dataset.id;
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'calls', id));
+            }
+            if(e.target.classList.contains('delete-behavior-btn')) {
+                const id = e.target.dataset.id;
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'behavior', id));
+            }
+            if(e.target.classList.contains('delete-show-code-btn')) {
+                const id = e.target.dataset.id;
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'show_codes', id));
+            }
+        });
+
+        // Attendance marking (for SM/Director)
+        document.getElementById('attendance-list').addEventListener('change', async (e) => {
+            if (e.target.classList.contains('attendance-select')) {
+                const userName = e.target.dataset.user;
+                const status = e.target.value;
+                const todayStr = getTodayString();
+                const userAttendanceRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', todayStr, 'users', userName);
+
+                if (status === 'Present') {
+                    await setDoc(userAttendanceRef, { status: status, markedBy: currentUser.name, timestamp: serverTimestamp() });
+                } else {
+                    // Open modal for reason
+                    document.getElementById('attendance-reason-user').value = userName;
+                    document.getElementById('attendance-reason-status').value = status;
+                    document.getElementById('attendance-reason-title').textContent = `Reason for ${userName} being ${status}`;
+                    document.getElementById('attendance-reason-modal').style.display = 'block';
+                    // Reset the dropdown in case they cancel
+                    e.target.value = 'Present'; 
                 }
             }
-        };
+        });
+        
+        // Attendance sign-in (for Actors/Tech)
+        document.getElementById('submit-signin-code').addEventListener('click', async () => {
+             const enteredCode = document.getElementById('signin-code-input').value;
+             if (enteredCode === signinCode && signinCode !== '') {
+                const todayStr = getTodayString();
+                const userAttendanceRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', todayStr, 'users', currentUser.name);
+                await setDoc(userAttendanceRef, { status: 'Present', markedBy: 'Self', timestamp: serverTimestamp() });
+             } else {
+                const modal = document.createElement('div');
+                modal.innerHTML = `<div style="position:fixed; top:10px; left: 50%; transform: translateX(-50%); background-color: #f8d7da; color: #721c24; padding: 10px 20px; border-radius: 5px; z-index: 1000;">Invalid sign-in code.</div>`;
+                document.body.appendChild(modal);
+                setTimeout(() => modal.remove(), 3000);
+             }
+        });
+        
+        document.getElementById('force-show-code-button').addEventListener('click', () => {
+             document.getElementById('signin-code-display').classList.remove('hidden');
+             document.getElementById('signin-code-timer').classList.add('hidden');
+        });
+
+
+        // --- HELPERS & TIMERS ---
+        function getTodayString() {
+            const today = new Date();
+            return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        }
+
+        function generateSigninCode() {
+            const date = new Date();
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            // Simple but non-obvious code
+            const code = (day * 17 + month * 31) % 10000;
+            return code.toString().padStart(4, '0');
+        }
+
+        function checkTimeToShowCode() {
+            const now = new Date();
+            const timeUntilRehearsal = rehearsalStartTime.getTime() - now.getTime();
+            const minutesUntil = timeUntilRehearsal / (1000 * 60);
+
+            if (minutesUntil <= 60 && now < rehearsalStartTime) {
+                document.getElementById('signin-code-display').classList.remove('hidden');
+                document.getElementById('signin-code-timer').classList.add('hidden');
+            } else {
+                 document.getElementById('signin-code-display').classList.add('hidden');
+                 document.getElementById('signin-code-timer').classList.remove('hidden');
+                 document.getElementById('signin-code-timer').textContent = `Sign-in code will appear at ${new Date(rehearsalStartTime.getTime() - 60*60*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`;
+            }
+        }
+
+        // --- ON LOAD ---
+        window.addEventListener('load', () => {
+            const savedUser = sessionStorage.getItem('theaterUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                initializeAppState();
+            }
+            
+            document.getElementById('today-date').textContent = new Date().toLocaleDateString();
+            signinCode = generateSigninCode();
+            document.getElementById('signin-code').textContent = signinCode;
+
+            checkTimeToShowCode();
+            setInterval(checkTimeToShowCode, 30000); // Check every 30 seconds
+        });
+
     </script>
 </body>
 </html>
+
 
