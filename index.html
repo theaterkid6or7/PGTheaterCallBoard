@@ -275,9 +275,9 @@
 
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, deleteDoc, setDoc, query, where, serverTimestamp, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, getDocs, onSnapshot, deleteDoc, setDoc, query, where, serverTimestamp, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- USER DATA ---
         const users = {
@@ -315,15 +315,15 @@
         };
 
         // --- FIREBASE CONFIG ---
-        // This configuration is now using the exact details you provided.
+        // This configuration uses the latest details you provided.
         const firebaseConfig = {
           apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
           authDomain: "pg-theater-call-board.firebaseapp.com",
           projectId: "pg-theater-call-board",
           storageBucket: "pg-theater-call-board.firebasestorage.app",
           messagingSenderId: "850857757575",
-          appId: "1:850857757575:web:15c92bb26532e146aea122",
-          measurementId: "G-BVVVEY7SYQ"
+          appId: "1:850857757575:web:8ef2834994186fabaea122",
+          measurementId: "G-1DNV9KENSJ"
         };
         const appId = 'pg-theater-callboard-app'; // A unique ID for your app's data collections
 
@@ -389,6 +389,11 @@
                 await signInAnonymously(auth);
             } catch(e) {
                 console.error("Firebase sign-in failed: ", e);
+                // Display a user-friendly error on the login screen
+                loginError.textContent = 'Connection failed. Please refresh.';
+                loginError.classList.remove('hidden');
+                // Log the user out of the broken state
+                document.getElementById('logout-button').click();
             }
         }
 
