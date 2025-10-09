@@ -135,22 +135,12 @@
 
             <!-- Right Column -->
             <div class="lg:col-span-1 space-y-8">
-                <!-- Show Day Sign In -->
-                <section id="actor-show-signin-section" class="hidden">
-                     <h2 class="text-2xl font-bold text-gold mb-4">Show Day Sign-In</h2>
-                     <div class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-4">
-                        <p id="show-day-signin-status" class="text-center font-semibold text-gray-400">Enter today's show code to sign in.</p>
-                        <input type="text" id="show-day-code-input" class="w-full text-center px-3 py-2 bg-gray-800 border border-gold rounded-md text-white focus:outline-none focus:ring-2 focus:ring-gold" placeholder="Enter Show Code">
-                        <button id="submit-show-code-button" class="w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Sign In for Show</button>
-                     </div>
-                </section>
-
                 <!-- Attendance -->
                 <section id="attendance-section">
-                    <h2 class="text-2xl font-bold text-gold mb-4">Rehearsal Attendance</h2>
+                    <h2 class="text-2xl font-bold text-gold mb-4">Event Attendance</h2>
                     <div class="bg-dark-gray p-4 rounded-lg border border-dark-gray">
                         <div id="actor-rehearsal-signin-view" class="hidden space-y-4">
-                            <h3 class="text-lg font-semibold text-center">Rehearsal Sign-In</h3>
+                            <h3 class="text-lg font-semibold text-center">Event Sign-In</h3>
                             <div id="signin-code-display" class="text-center p-4 border-2 border-dashed border-gold rounded-md hidden">
                                 <p class="text-gray-400">Today's Sign-In Code:</p>
                                 <p id="signin-code" class="text-4xl font-bold tracking-widest"></p>
@@ -177,16 +167,6 @@
                     </div>
                     <div id="behavior-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-3 max-h-96 overflow-y-auto">
                         <!-- Behavior markers will be injected here -->
-                    </div>
-                </section>
-                <!-- Show Day Management -->
-                <section id="show-day-mgmt-section" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold text-gold">Show Days</h2>
-                        <button id="add-show-day-button" class="bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">New Show</button>
-                    </div>
-                    <div id="show-days-list" class="bg-dark-gray p-4 rounded-lg border border-dark-gray space-y-3 max-h-96 overflow-y-auto">
-                        <!-- Show days will be injected here -->
                     </div>
                 </section>
             </div>
@@ -261,18 +241,6 @@
         </div>
     </div>
 
-    <div id="show-day-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="document.getElementById('show-day-modal').style.display='none'">&times;</span>
-            <h3 class="text-xl font-bold text-gold mb-4">Create Show Day</h3>
-            <form id="show-day-form">
-                <label for="show-day-date" class="block text-gold mb-2">Select Show Date</label>
-                <input type="date" id="show-day-date" class="w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
-                <button type="submit" class="mt-4 w-full bg-gold text-black font-bold py-2 px-4 rounded-md hover-bg-gold-dark transition duration-300">Create Show Day & Code</button>
-            </form>
-        </div>
-    </div>
-
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -287,9 +255,9 @@
             'cbeck': { pass: 'G?5sLRCkZYCg', role: 'Actor' }, 'sjulien': { pass: '#0Y57gk*b?Jq', role: 'Actor' }, 'agipson': { pass: 'c!?xGW2JvB:2', role: 'Actor' }, 
             'owyatt': { pass: '9vq-B#4q]}>.', role: 'Actor' }, 'swyatt': { pass: 'B?2jjtvNqtq_', role: 'Actor' }, 'afry': { pass: '5Mxc,kQpd,!T', role: 'Actor' }, 
             'rromero': { pass: '=4A*pq+xQq:!', role: 'Actor' }, 'gromero': { pass: 'j.dab8,6X_m2', role: 'Actor' }, 'adalton': { pass: 'N.K#K9K.F60W', role: 'Actor' }, 
-            'ajones': { pass: 'RbvA*EjQ_i1}', role: 'Actor' }, 'afooter': { pass: '3g0w]*Lt>~]D', role: 'Tech' }, 'acollins': { pass: 'MU?#03xg.GQw', role: 'Actor' }, 
+            'afooter': { pass: '3g0w]*Lt>~]D', role: 'Tech' }, 'acollins': { pass: 'MU?#03xg.GQw', role: 'Actor' }, 
             'achasteen': { pass: '1k#VK*b~!yWA', role: 'Actor' }, 'agibson': { pass: '64KmMFCb>C.y', role: 'Actor' }, 'aaslin': { pass: 'YMDke#Pj23sV', role: 'Tech' }, 
-            'abobo': { pass: '=#.C_R.CLu1C', role: 'Actor' }, 'adavis': { pass: '5T,xB0U9?%M*', role: 'Actor' }, 'bfrazier': { pass: ']r)i]-]%6*1v', role: 'Actor' }, 
+            'abobo': { pass: '=#.C_R.CLu1C', role: 'Actor' }, 'bfrazier': { pass: ']r)i]-]%6*1v', role: 'Actor' }, 
             'bdavis': { pass: 'h)~3c4^@9oow', role: 'Tech' }, 'bbenich': { pass: 'q!o)%+h@Fz7-', role: 'Actor' }, 'brussel': { pass: 'wQnXbF1m)i=b', role: 'Actor' }, 
             'cadcock': { pass: '1*4Y_Z*jzLBR', role: 'Actor' }, 'cdiaz': { pass: 'EJqJFWdcHE^0', role: 'Actor' }, 'csteadham': { pass: 'GAVX0G3=nvDE', role: 'Actor' }, 
             'ckeyes': { pass: ']wmu?L4!o_D_', role: 'Actor' }, 'cgaines': { pass: 'No%vozF1d44@', role: 'Actor' }, 'dmoore': { pass: 'dQX!yDw?K3qV', role: 'Actor' }, 
@@ -309,9 +277,9 @@
         const allUsernames = Object.keys(users).sort();
         const groups = {
             "Childrens Ens": ["acollins", "vgriffin", "ksterling", "gromero", "kringwood", "brussel", "lponder", "lsinglton", "brussel", "msandoval", "kreading", "jpoydras", "emorsey"],
-            "Adult Ens": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "sjulien", "soneal", "rhardy", "csteadham", "jarcher", "rwilson", "jwalker", "cdiaz", "achasteen", "adam", "noliver", "lbrown", "hthompson", "dmoore", "smartin", "bfrazier"],
-            "Stories": ["cbeck", "lsinglton", "yji", "apate", "adavis", "bbenich", "vgriffin", "gromero", "cadcock", "acollins", "sjulien", "lponder", "msandoval", "rhardy"],
-            "Loud Couples": ["soneal", "brussel", "cdiaz", "rwilson", "gromero", "bbenich", "sjulien", "cbeck", "ajones", "abobo", "noliver", "rhardy", "jwalker", "dmoore"],
+            "Adult Ens": ["cbeck", "lsinglton", "yji", "apate", "bbenich", "sjulien", "soneal", "rhardy", "csteadham", "jarcher", "rwilson", "jwalker", "cdiaz", "achasteen", "adam", "noliver", "lbrown", "hthompson", "dmoore", "smartin", "bfrazier"],
+            "Stories": ["cbeck", "lsinglton", "yji", "apate", "bbenich", "vgriffin", "gromero", "cadcock", "acollins", "sjulien", "lponder", "msandoval", "rhardy"],
+            "Loud Couples": ["soneal", "brussel", "cdiaz", "rwilson", "gromero", "bbenich", "sjulien", "cbeck", "abobo", "noliver", "rhardy", "jwalker", "dmoore"],
         };
 
         // --- FIREBASE CONFIG ---
@@ -337,8 +305,6 @@
         let unsubscribeCalls = null;
         let unsubscribeAttendance = null;
         let unsubscribeBehavior = null;
-        let unsubscribeShowDays = null;
-        let todayShowData = null; // Will store today's show if it exists
         let rehearsalStartTime = new Date();
         rehearsalStartTime.setHours(19, 0, 0, 0); // 7:00 PM
         let signinCode = '';
@@ -376,7 +342,6 @@
             if (unsubscribeCalls) unsubscribeCalls();
             if (unsubscribeAttendance) unsubscribeAttendance();
             if (unsubscribeBehavior) unsubscribeBehavior();
-            if (unsubscribeShowDays) unsubscribeShowDays();
 
             mainApp.classList.add('hidden');
             loginScreen.classList.remove('hidden');
@@ -421,7 +386,6 @@
             document.getElementById('add-announcement-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-call-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-behavior-button').classList.toggle('hidden', !(isDirector || isStageManager));
-            document.getElementById('show-day-mgmt-section').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('force-show-code-button').classList.toggle('hidden', !isDirector);
 
             // Setup attendance view
@@ -506,13 +470,6 @@
             unsubscribeBehavior = onSnapshot(query(behaviorRef), (snapshot) => {
                  const markers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.timestamp - a.timestamp);
                  renderBehaviorMarkers(markers);
-            });
-
-            // Show Days
-            const showDaysRef = collection(db, 'artifacts', appId, 'public', 'data', 'show_days');
-            unsubscribeShowDays = onSnapshot(query(showDaysRef), (snapshot) => {
-                const days = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderShowDays(days);
             });
         }
 
@@ -607,50 +564,6 @@
             });
         }
 
-        async function renderShowDays(days) {
-            // Admin View
-            const list = document.getElementById('show-days-list');
-            list.innerHTML = '';
-            if (days.length === 0) {
-                list.innerHTML = `<p class="text-gray-400">No show days created.</p>`;
-            } else {
-                 days.sort((a,b) => a.date.localeCompare(b.date)).forEach(day => {
-                    list.innerHTML += `
-                        <div class="p-3 bg-gray-800 rounded-md text-sm">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="font-bold text-white">${day.date}</p>
-                                    <p class="text-gold mt-1">Code: <span class="tracking-widest">${day.code}</span></p>
-                                </div>
-                                <button class="delete-show-day-btn text-red-500 hover:text-red-400 text-xs" data-id="${day.id}">DELETE</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            // Actor View
-            const todayStr = getTodayString();
-            todayShowData = days.find(day => day.date === todayStr) || null;
-            const actorShowSignin = document.getElementById('actor-show-signin-section');
-            actorShowSignin.classList.toggle('hidden', !todayShowData);
-            
-            if (todayShowData) {
-                const signInDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'show_days', todayShowData.id, 'signins', currentUser.name));
-                const statusEl = document.getElementById('show-day-signin-status');
-                if (signInDoc.exists()) {
-                    statusEl.textContent = "You are signed in for today's show!";
-                    statusEl.className = 'text-center font-semibold text-green-400';
-                    document.getElementById('show-day-code-input').disabled = true;
-                    document.getElementById('submit-show-code-button').disabled = true;
-                } else {
-                     statusEl.textContent = "Enter today's show code to sign in.";
-                     statusEl.className = 'text-center font-semibold text-gray-400';
-                     document.getElementById('show-day-code-input').disabled = false;
-                    document.getElementById('submit-show-code-button').disabled = false;
-                }
-            }
-        }
         
         function renderFullAttendanceList() {
             const list = document.getElementById('attendance-list');
@@ -729,7 +642,6 @@
         document.getElementById('add-announcement-button').addEventListener('click', () => document.getElementById('announcement-modal').style.display = 'block');
         document.getElementById('add-call-button').addEventListener('click', () => document.getElementById('call-modal').style.display = 'block');
         document.getElementById('add-behavior-button').addEventListener('click', () => document.getElementById('behavior-modal').style.display = 'block');
-        document.getElementById('add-show-day-button').addEventListener('click', () => document.getElementById('show-day-modal').style.display = 'block');
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = "none";
@@ -801,17 +713,6 @@
             document.getElementById('behavior-modal').style.display = 'none';
         });
         
-        document.getElementById('show-day-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const date = document.getElementById('show-day-date').value;
-            if (!date) return;
-            const code = Math.floor(1000 + Math.random() * 9000).toString();
-            const showDaysRef = collection(db, 'artifacts', appId, 'public', 'data', 'show_days');
-            await addDoc(showDaysRef, { date, code });
-            e.target.reset();
-            document.getElementById('show-day-modal').style.display = 'none';
-        });
-        
         document.getElementById('attendance-reason-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const userName = document.getElementById('attendance-reason-user').value;
@@ -860,10 +761,6 @@
                 const id = e.target.dataset.id;
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'behavior', id));
             }
-            if(e.target.classList.contains('delete-show-day-btn')) {
-                const id = e.target.dataset.id;
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'show_days', id));
-            }
         });
 
         // Attendance marking (for SM/Director)
@@ -900,17 +797,6 @@
              }
         });
 
-        // Show Day sign-in (for Actors/Tech)
-        document.getElementById('submit-show-code-button').addEventListener('click', async () => {
-            if (!todayShowData) return;
-            const enteredCode = document.getElementById('show-day-code-input').value;
-            if (enteredCode === todayShowData.code) {
-                const signInRef = doc(db, 'artifacts', appId, 'public', 'data', 'show_days', todayShowData.id, 'signins', currentUser.name);
-                await setDoc(signInRef, { timestamp: serverTimestamp() });
-            } else {
-                alert('Invalid show code.');
-            }
-        });
         
         document.getElementById('force-show-code-button').addEventListener('click', () => {
              document.getElementById('signin-code-display').classList.remove('hidden');
@@ -970,4 +856,5 @@
     </script>
 </body>
 </html>
+
 
