@@ -190,9 +190,19 @@
             <span class="close-button" onclick="document.getElementById('call-modal').style.display='none'">&times;</span>
             <h3 class="text-xl font-bold text-gold mb-4">New Call</h3>
             <form id="call-form">
+                <div class="mb-2">
+                    <label for="call-date" class="block text-sm font-medium text-gray-400">Date</label>
+                    <input type="date" id="call-date" class="mt-1 w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
+                </div>
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <input type="date" id="call-date" class="px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
-                    <input type="time" id="call-time" class="px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
+                    <div>
+                        <label for="call-time" class="block text-sm font-medium text-gray-400">Arrival Time</label>
+                        <input type="time" id="call-time" class="mt-1 w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
+                    </div>
+                    <div>
+                        <label for="rehearsal-time" class="block text-sm font-medium text-gray-400">Rehearsal Start</label>
+                        <input type="time" id="rehearsal-time" class="mt-1 w-full px-3 py-2 bg-gray-800 border border-gold rounded-md text-white" required>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-gold mb-2">Who is Called?</label>
@@ -305,8 +315,7 @@
         let unsubscribeCalls = null;
         let unsubscribeAttendance = null;
         let unsubscribeBehavior = null;
-        let rehearsalStartTime = new Date();
-        rehearsalStartTime.setHours(19, 0, 0, 0); // 7:00 PM
+        let todaysFirstCallTime = null;
         let signinCode = '';
 
         // --- DOM ELEMENTS ---
@@ -386,18 +395,30 @@
             document.getElementById('add-announcement-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-call-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-behavior-button').classList.toggle('hidden', !(isDirector || isStageManager));
-            document.getElementById('force-show-code-button').classList.toggle('hidden', !isDirector);
+            document.getElementById('force-show-code-button').classList.toggle('hidden', !(isDirector || isStageManager));
 
             // Setup attendance view
             const rehearsalView = document.getElementById('actor-rehearsal-signin-view');
             const smView = document.getElementById('sm-director-attendance-view');
+
+            // Get the specific elements for actor sign-in
+            const signInInput = document.getElementById('signin-code-input');
+            const signInButton = document.getElementById('submit-signin-code');
+            const signInStatus = document.getElementById('signin-status');
+
             if (isDirector || isStageManager) {
-                rehearsalView.classList.add('hidden');
-                smView.classList.remove('hidden');
+                rehearsalView.classList.remove('hidden'); // Show the container with the code
+                smView.classList.remove('hidden');      // Show the roster
+                
+                // Hide the parts for actor interaction, leaving only the code display for SM/Directors
+                signInInput.classList.add('hidden');
+                signInButton.classList.add('hidden');
+                signInStatus.classList.add('hidden');
+
                 renderFullAttendanceList();
             } else {
-                smView.classList.add('hidden');
-                rehearsalView.classList.remove('hidden');
+                smView.classList.add('hidden');         // Hide roster from actors
+                rehearsalView.classList.add('hidden');  // Hide the entire sign-in section from actors
             }
             
             // Populate behavior user select
@@ -453,6 +474,21 @@
             unsubscribeCalls = onSnapshot(query(callsRef), (snapshot) => {
                 const calls = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => b.callDateTime - a.callDateTime);
                 renderCalls(calls);
+
+                // Find the earliest call time for today
+                const todayStr = getTodayString();
+                const todaysCalls = calls.filter(call => {
+                    const callDate = call.callDateTime?.toDate();
+                    return callDate && getTodayString(callDate) === todayStr;
+                });
+
+                if (todaysCalls.length > 0) {
+                    todaysCalls.sort((a, b) => a.callDateTime - b.callDateTime);
+                    todaysFirstCallTime = todaysCalls[0].callDateTime.toDate();
+                } else {
+                    todaysFirstCallTime = null;
+                }
+                checkTimeToShowCode(); // Update timer display immediately
             });
             
             // Attendance
@@ -665,14 +701,16 @@
         document.getElementById('call-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const date = document.getElementById('call-date').value;
-            const time = document.getElementById('call-time').value;
+            const arrivalTime = document.getElementById('call-time').value;
+            const rehearsalTime = document.getElementById('rehearsal-time').value;
             const notes = document.getElementById('call-notes').value;
 
-            if (!date || !time) {
-                alert("Please select a date and time for the call.");
+            if (!date || !arrivalTime || !rehearsalTime) {
+                alert("Please select a date and both an arrival and rehearsal time.");
                 return;
             }
-            const callDateTime = new Date(`${date}T${time}`);
+            const arrivalDateTime = new Date(`${date}T${arrivalTime}`);
+            const rehearsalDateTime = new Date(`${date}T${rehearsalTime}`);
 
             const selectedGroups = Array.from(document.querySelectorAll('#call-groups-container input[name="group"]:checked')).map(el => el.value);
             const selectedIndividuals = Array.from(document.querySelectorAll('#call-groups-container input[name="individual"]:checked')).map(el => el.value);
@@ -684,7 +722,8 @@
 
             const callsRef = collection(db, 'artifacts', appId, 'public', 'data', 'calls');
             await addDoc(callsRef, {
-                callDateTime: Timestamp.fromDate(callDateTime),
+                callDateTime: Timestamp.fromDate(arrivalDateTime),
+                rehearsalDateTime: Timestamp.fromDate(rehearsalDateTime),
                 called: {
                     groups: selectedGroups,
                     individuals: selectedIndividuals,
@@ -772,7 +811,14 @@
                 const userAttendanceRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', todayStr, 'users', userName);
 
                 if (status === 'Present') {
-                    await setDoc(userAttendanceRef, { status: status, markedBy: currentUser.name, timestamp: serverTimestamp() });
+                    // Directly mark as present and clear any previous reasons
+                    await setDoc(userAttendanceRef, { 
+                        status: status, 
+                        markedBy: currentUser.name, 
+                        timestamp: serverTimestamp(),
+                        reason: '',
+                        excused: false
+                    });
                 } else {
                     // Open modal for reason
                     document.getElementById('attendance-reason-user').value = userName;
@@ -805,11 +851,11 @@
 
 
         // --- HELPERS & TIMERS ---
-        function getTodayString() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
+        function getTodayString(date) {
+            const d = date || new Date();
+            const year = d.getFullYear();
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
 
@@ -823,17 +869,28 @@
         }
 
         function checkTimeToShowCode() {
-            const now = new Date();
-            const timeUntilRehearsal = rehearsalStartTime.getTime() - now.getTime();
-            const minutesUntil = timeUntilRehearsal / (1000 * 60);
+            const signinCodeDisplay = document.getElementById('signin-code-display');
+            const signinCodeTimer = document.getElementById('signin-code-timer');
 
-            if (minutesUntil <= 60 && now < rehearsalStartTime) {
-                document.getElementById('signin-code-display').classList.remove('hidden');
-                document.getElementById('signin-code-timer').classList.add('hidden');
+            if (!todaysFirstCallTime) {
+                signinCodeDisplay.classList.add('hidden');
+                signinCodeTimer.classList.remove('hidden');
+                signinCodeTimer.textContent = 'No events scheduled for today.';
+                return;
+            }
+
+            const now = new Date();
+            const timeUntilCall = todaysFirstCallTime.getTime() - now.getTime();
+            const minutesUntil = timeUntilCall / (1000 * 60);
+
+            if (minutesUntil <= 60 && minutesUntil > -15) { // Show code 60 mins before and up to 15 mins after call
+                signinCodeDisplay.classList.remove('hidden');
+                signinCodeTimer.classList.add('hidden');
             } else {
-                 document.getElementById('signin-code-display').classList.add('hidden');
-                 document.getElementById('signin-code-timer').classList.remove('hidden');
-                 document.getElementById('signin-code-timer').textContent = `Sign-in code will appear at ${new Date(rehearsalStartTime.getTime() - 60*60*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`;
+                 signinCodeDisplay.classList.add('hidden');
+                 signinCodeTimer.classList.remove('hidden');
+                 const showTime = new Date(todaysFirstCallTime.getTime() - 60*60*1000);
+                 signinCodeTimer.textContent = `Sign-in code will appear at ${showTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}.`;
             }
         }
 
@@ -856,5 +913,9 @@
     </script>
 </body>
 </html>
+
+
+
+
 
 
