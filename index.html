@@ -407,18 +407,23 @@
             const signInStatus = document.getElementById('signin-status');
 
             if (isDirector || isStageManager) {
-                rehearsalView.classList.remove('hidden'); // Show the container with the code
-                smView.classList.remove('hidden');      // Show the roster
+                rehearsalView.classList.remove('hidden');
+                smView.classList.remove('hidden');
                 
-                // Hide the parts for actor interaction, leaving only the code display for SM/Directors
+                // Hide actor-specific input fields for SMs/Directors
                 signInInput.classList.add('hidden');
                 signInButton.classList.add('hidden');
                 signInStatus.classList.add('hidden');
 
                 renderFullAttendanceList();
-            } else {
-                smView.classList.add('hidden');         // Hide roster from actors
-                rehearsalView.classList.add('hidden');  // Hide the entire sign-in section from actors
+            } else { // Actors, Tech, etc.
+                smView.classList.add('hidden');
+                rehearsalView.classList.remove('hidden');
+                
+                // Show actor-specific input fields
+                signInInput.classList.remove('hidden');
+                signInButton.classList.remove('hidden');
+                signInStatus.classList.remove('hidden');
             }
             
             // Populate behavior user select
@@ -872,6 +877,14 @@
             const signinCodeDisplay = document.getElementById('signin-code-display');
             const signinCodeTimer = document.getElementById('signin-code-timer');
 
+            // Only show timer/code for Directors and Stage Managers
+            const isPrivilegedUser = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
+            if (!isPrivilegedUser) {
+                signinCodeDisplay.classList.add('hidden');
+                signinCodeTimer.classList.add('hidden');
+                return;
+            }
+
             if (!todaysFirstCallTime) {
                 signinCodeDisplay.classList.add('hidden');
                 signinCodeTimer.classList.remove('hidden');
@@ -913,6 +926,7 @@
     </script>
 </body>
 </html>
+
 
 
 
