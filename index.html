@@ -127,7 +127,10 @@
 
                     <!-- SM/Director View -->
                     <div id="sm-director-attendance-view" class="hidden">
-                         <button id="force-show-code-button" class="w-full mb-4 py-2 px-4 border gold-border rounded-md shadow-sm text-sm font-bold gold-text hover:bg-[#D4AF37] hover:text-black transition-colors">Force Show Code</button>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <button id="force-show-code-button" class="flex-grow py-2 px-4 border gold-border rounded-md shadow-sm text-sm font-bold gold-text hover:bg-[#D4AF37] hover:text-black transition-colors">Force Show Code</button>
+                            <button id="export-attendance-button" class="flex-grow py-2 px-4 border gold-border rounded-md shadow-sm text-sm font-bold gold-text hover:bg-[#D4AF37] hover:text-black transition-colors">Export Attendance</button>
+                         </div>
                         <div id="attendance-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
                             <!-- JS will populate this -->
                         </div>
@@ -273,9 +276,9 @@
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, query, orderBy, serverTimestamp, where, getDocs } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
         
         // --- FIREBASE CONFIG ---
-        // This configuration MUST match the one from your Firebase project console.
         const firebaseConfig = {
             apiKey: "AIzaSyAACv92bzY5cECbECBtsw6oyxrUnEBaJMY",
             authDomain: "pg-theater-call-board.firebaseapp.com",
@@ -288,13 +291,15 @@
 
 
         // --- FIREBASE INITIALIZATION ---
-        let app, db;
+        let app, db, auth;
         try {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            console.log("Firebase connected successfully!");
+            auth = getAuth(app);
+            await signInAnonymously(auth);
+            console.log("Firebase connected and user signed in anonymously.");
         } catch (error) {
-            console.error("Firebase initialization failed:", error);
+            console.error("Firebase initialization or anonymous sign-in failed:", error);
             document.getElementById('connection-status').classList.remove('hidden');
         }
 
@@ -314,6 +319,8 @@
         let currentUser = null;
         let todaysFirstCallTime = null;
         let codeInterval;
+        let todaysCalledUsers = new Set();
+        let currentAttendanceData = {};
 
         // --- UTILITY FUNCTIONS ---
         function getTodayDateString() {
@@ -340,38 +347,25 @@
             const isDirector = currentUser.role === 'Director';
             const isStageManager = currentUser.role === 'Stage Manager';
             
-            // Show/hide buttons based on role
             document.getElementById('add-announcement-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-call-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('add-behavior-button').classList.toggle('hidden', !(isDirector || isStageManager));
             document.getElementById('force-show-code-button').classList.toggle('hidden', !(isDirector || isStageManager));
+            document.getElementById('export-attendance-button').classList.toggle('hidden', !(isDirector || isStageManager));
 
-            // Setup attendance view
+
             const rehearsalView = document.getElementById('actor-rehearsal-signin-view');
             const smView = document.getElementById('sm-director-attendance-view');
-            const signInInput = document.getElementById('signin-code-input');
-            const signInButton = document.getElementById('submit-signin-code');
-            const signInStatus = document.getElementById('signin-status');
-            const codeDisplay = document.getElementById('signin-code-display');
-
+            
             if (isDirector || isStageManager) {
-                rehearsalView.classList.remove('hidden');
                 smView.classList.remove('hidden');
-                signInInput.classList.add('hidden');
-                signInButton.classList.add('hidden');
-                signInStatus.classList.add('hidden');
-                codeDisplay.classList.remove('hidden');
+                rehearsalView.classList.add('hidden');
                 renderFullAttendanceList();
             } else { // Actors, Tech, etc.
                 smView.classList.add('hidden');
                 rehearsalView.classList.remove('hidden');
-                signInInput.classList.remove('hidden');
-                signInButton.classList.remove('hidden');
-                signInStatus.classList.remove('hidden');
-                codeDisplay.classList.add('hidden');
             }
             
-            // Populate behavior user select
             const userSelect = document.getElementById('behavior-user-select');
             userSelect.innerHTML = '<option value="">Select Person...</option>';
             allUsernames.forEach(name => {
@@ -381,7 +375,6 @@
                 userSelect.appendChild(option);
             });
             
-            // Populate call modal selects
             populateCallModal();
         }
 
@@ -391,7 +384,6 @@
             groupsContainer.innerHTML = '<h4 class="font-bold text-gray-300 col-span-full">Groups</h4>';
             individualsContainer.innerHTML = '<h4 class="font-bold text-gray-300 col-span-full">Individuals</h4><div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">';
 
-            // Groups
             Object.keys(groups).forEach(groupName => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center';
@@ -401,7 +393,6 @@
                 groupsContainer.appendChild(div);
             });
 
-            // Individuals
             allUsernames.forEach(name => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center';
@@ -421,13 +412,15 @@
                 div.innerHTML = `
                     <span class="font-medium col-span-1">${name}</span>
                     <div class="col-span-1 flex items-center space-x-1">
-                        <span id="status-${name}" class="text-sm font-semibold text-gray-500">Not Marked</span>
+                        <span id="status-${name}" class="text-sm font-semibold text-gray-500"></span>
                         <div id="reason-icon-${name}" class="hidden tooltip">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
                             <span class="tooltiptext"></span>
                         </div>
                     </div>
                     <select data-user="${name}" class="attendance-select col-span-2 bg-[#1E1E1E] border border-gray-600 rounded-md text-white text-sm focus:ring-[#D4AF37] focus:border-[#D4AF37]">
+                        <option>Not Marked</option>
+                        <option>Not Called</option>
                         <option>Present</option>
                         <option>Tardy</option>
                         <option>Absent</option>
@@ -472,13 +465,17 @@
                  if (snapshot.empty) {
                     list.innerHTML = `<p class="text-gray-400 text-sm">No calls for today.</p>`;
                     todaysFirstCallTime = null;
+                    todaysCalledUsers.clear();
+                    updateAttendanceUI();
                     return;
                 }
                 
+                todaysCalledUsers.clear();
                 let firstCall = null;
 
                 snapshot.docs.forEach(doc => {
                     const call = doc.data();
+                    call.called.forEach(name => todaysCalledUsers.add(name));
                     
                     const callTimeDate = new Date(`${call.date}T${call.time}`);
                     if (!firstCall || callTimeDate < firstCall) {
@@ -505,6 +502,7 @@
                 });
                 todaysFirstCallTime = firstCall;
                 checkTimeToShowCode();
+                updateAttendanceUI(); 
             });
         }
         
@@ -542,14 +540,54 @@
                 snapshot.forEach(doc => {
                     attendanceData[doc.id] = doc.data();
                 });
-                updateAttendanceUI(attendanceData);
+                currentAttendanceData = attendanceData;
+                updateAttendanceUI();
             });
         }
 
-        function updateAttendanceUI(attendanceData) {
-            // Actor view
-            if (currentUser && !['Director', 'Stage Manager'].includes(currentUser.role)) {
-                const myStatus = attendanceData[currentUser.name];
+        function updateAttendanceUI() {
+            if (!currentUser) return;
+            
+            if (['Director', 'Stage Manager'].includes(currentUser.role)) {
+                allUsernames.forEach(name => {
+                    const data = currentAttendanceData[name];
+                    const isCalled = todaysCalledUsers.has(name);
+                    const statusRow = document.getElementById(`status-${name}`);
+                    const reasonIcon = document.getElementById(`reason-icon-${name}`);
+                    const selectEl = document.querySelector(`.attendance-select[data-user="${name}"]`);
+                    
+                    if (statusRow && selectEl) {
+                        if (data) {
+                            statusRow.textContent = data.status;
+                            selectEl.value = data.status;
+
+                            if (data.status === 'Present') statusRow.className = 'text-sm font-semibold text-green-400';
+                            else if (data.status === 'Tardy') statusRow.className = 'text-sm font-semibold text-yellow-400';
+                            else if (data.status === 'Not Called') statusRow.className = 'text-sm font-semibold text-gray-600';
+                            else statusRow.className = 'text-sm font-semibold text-red-400';
+
+                            if (data.reason) {
+                                reasonIcon.classList.remove('hidden');
+                                reasonIcon.querySelector('.tooltiptext').textContent = data.reason;
+                            } else {
+                                reasonIcon.classList.add('hidden');
+                            }
+                        } else {
+                             if (isCalled) {
+                                statusRow.textContent = "Not Marked";
+                                statusRow.className = 'text-sm font-semibold text-gray-500';
+                                selectEl.value = 'Not Marked';
+                            } else {
+                                statusRow.textContent = "Not Called";
+                                statusRow.className = 'text-sm font-semibold text-gray-600';
+                                selectEl.value = 'Not Called';
+                            }
+                            reasonIcon.classList.add('hidden');
+                        }
+                    }
+                });
+            } else { // Actor view
+                const myStatus = currentAttendanceData[currentUser.name];
                 const statusEl = document.getElementById('signin-status');
                 if (myStatus) {
                     statusEl.textContent = `You are marked: ${myStatus.status}`;
@@ -563,41 +601,41 @@
                      statusEl.className = 'text-center font-semibold text-gray-400';
                 }
             }
-
-            // SM/Director View
-            if (currentUser && ['Director', 'Stage Manager'].includes(currentUser.role)) {
-                allUsernames.forEach(name => {
-                    const data = attendanceData[name];
-                    const statusRow = document.getElementById(`status-${name}`);
-                    const reasonIcon = document.getElementById(`reason-icon-${name}`);
-                    const selectEl = document.querySelector(`.attendance-select[data-user="${name}"]`);
-                    
-                    if (statusRow && selectEl) {
-                        if (data) {
-                            statusRow.textContent = data.status;
-                            selectEl.value = data.status;
-
-                            if (data.status === 'Present') statusRow.className = 'text-sm font-semibold text-green-400';
-                            else if (data.status === 'Tardy') statusRow.className = 'text-sm font-semibold text-yellow-400';
-                            else statusRow.className = 'text-sm font-semibold text-red-400';
-
-                            if (data.reason) {
-                                reasonIcon.classList.remove('hidden');
-                                reasonIcon.querySelector('.tooltiptext').textContent = data.reason;
-                            } else {
-                                reasonIcon.classList.add('hidden');
-                            }
-                        } else {
-                            statusRow.textContent = "Not Marked";
-                            statusRow.className = 'text-sm font-semibold text-gray-500';
-                            selectEl.value = 'Present'; // Reset dropdown
-                            reasonIcon.classList.add('hidden');
-                        }
-                    }
-                });
-            }
         }
+        
+        function exportAttendance() {
+            let csvContent = "Name,Status,Reason\n";
 
+            allUsernames.forEach(name => {
+                const data = currentAttendanceData[name];
+                const isCalled = todaysCalledUsers.has(name);
+                let status = "";
+                let reason = "";
+
+                if (data) {
+                    status = data.status;
+                    reason = data.reason || "";
+                } else {
+                    status = isCalled ? "Not Marked" : "Not Called";
+                }
+                
+                const sanitizedReason = `"${reason.replace(/"/g, '""')}"`;
+                
+                const row = [name, status, sanitizedReason].join(",");
+                csvContent += row + "\n";
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            const today = getTodayDateString();
+            link.setAttribute("download", `attendance_${today}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // --- EVENT HANDLERS ---
         document.getElementById('login-form').addEventListener('submit', (e) => {
@@ -620,12 +658,10 @@
             }
         });
         
-        // Modal Openers
         document.getElementById('add-announcement-button').addEventListener('click', () => openModal('announcement-modal'));
         document.getElementById('add-call-button').addEventListener('click', () => openModal('call-modal'));
         document.getElementById('add-behavior-button').addEventListener('click', () => openModal('behavior-modal'));
         
-        // Form Submissions
         document.getElementById('announcement-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = document.getElementById('announcement-text').value;
@@ -674,7 +710,6 @@
             closeModal('behavior-modal');
         });
 
-        // Deletion Handlers (Event Delegation)
         document.getElementById('main-app').addEventListener('click', async (e) => {
             if (e.target.classList.contains('delete-announcement-btn')) {
                 await deleteDoc(doc(db, "announcements", e.target.dataset.id));
@@ -687,7 +722,6 @@
             }
         });
         
-        // Attendance Handlers
         document.getElementById('submit-signin-code').addEventListener('click', async () => {
              const enteredCode = document.getElementById('signin-code-input').value;
              const today = getTodayDateString();
@@ -701,11 +735,13 @@
              }
         });
 
-        document.getElementById('attendance-list').addEventListener('change', (e) => {
+        document.getElementById('sm-director-attendance-view').addEventListener('change', (e) => {
             if (e.target.classList.contains('attendance-select')) {
                 handleAttendanceChange(e.target);
             }
         });
+        
+        document.getElementById('export-attendance-button').addEventListener('click', exportAttendance);
         
         document.getElementById('force-show-code-button').addEventListener('click', () => {
              generateAndShowCode(true);
@@ -725,7 +761,6 @@
             }
             await setDoc(attendanceRef, attendanceData, { merge: true });
 
-            // Auto behavior markers
             if (status === 'Tardy' || status === 'Absent') {
                  await addDoc(collection(db, 'behaviors'), {
                     userName: userName,
@@ -741,7 +776,16 @@
             const userName = selectElement.dataset.user;
             const newStatus = selectElement.value;
 
-            // **FIX**: If the status requires a reason, open the modal. Otherwise, update directly.
+            if (newStatus === 'Not Called' || newStatus === 'Not Marked') {
+                const today = getTodayDateString();
+                const attendanceRef = doc(db, "attendance", today, "users", userName);
+                const docSnap = await getDoc(attendanceRef);
+                if (docSnap.exists()) {
+                    await deleteDoc(attendanceRef);
+                }
+                return;
+            }
+
             if (['Absent', 'Tardy', 'Left Early'].includes(newStatus)) {
                 const reasonModal = document.getElementById('reason-modal');
                 const reasonForm = document.getElementById('reason-form');
@@ -749,19 +793,17 @@
                 
                 reasonTitle.textContent = `Reason for ${userName} being ${newStatus}`;
                 
-                // Use a one-time event listener for the form submission
                 reasonForm.onsubmit = async (e) => {
                     e.preventDefault();
                     const reason = document.getElementById('reason-input').value;
                     await updateAttendance(userName, newStatus, reason);
                     closeModal('reason-modal');
                     reasonForm.reset();
-                    reasonForm.onsubmit = null; // Clear listener
+                    reasonForm.onsubmit = null; 
                 };
                 
                 openModal('reason-modal');
             } else {
-                // If status is 'Present' or anything else, update it directly.
                 await updateAttendance(userName, newStatus);
             }
         }
@@ -770,10 +812,11 @@
              const signinCodeDisplay = document.getElementById('signin-code-display');
              const signinCodeTimer = document.getElementById('signin-code-timer');
              const codeEl = document.getElementById('daily-code');
+             const actorView = document.getElementById('actor-rehearsal-signin-view');
 
             if (force) {
-                 signinCodeTimer.classList.add('hidden');
-                 signinCodeDisplay.classList.remove('hidden');
+                actorView.querySelector('#signin-code-timer').classList.add('hidden');
+                actorView.querySelector('#signin-code-display').classList.remove('hidden');
             }
             
             const today = getTodayDateString();
@@ -783,27 +826,23 @@
             if (!codeDoc.exists()) {
                 const newCode = Math.floor(1000 + Math.random() * 9000).toString();
                 await setDoc(codeRef, { code: newCode });
-                codeEl.textContent = newCode;
+                actorView.querySelector('#daily-code').textContent = newCode;
             } else {
-                codeEl.textContent = codeDoc.data().code;
+                actorView.querySelector('#daily-code').textContent = codeDoc.data().code;
             }
         }
         
         function checkTimeToShowCode() {
-            if (!currentUser) return; // Prevent error on load
+            if (!currentUser) return;
 
-            const signinCodeDisplay = document.getElementById('signin-code-display');
-            const signinCodeTimer = document.getElementById('signin-code-timer');
-
-            const isPrivilegedUser = currentUser.role === 'Director' || currentUser.role === 'Stage Manager';
-            if (!isPrivilegedUser) {
-                return; // Only SM/Directors see the code or timer.
-            }
-
+            const actorView = document.getElementById('actor-rehearsal-signin-view');
+            const signinCodeDisplay = actorView.querySelector('#signin-code-display');
+            const signinCodeTimer = actorView.querySelector('#signin-code-timer');
+            
             if (!todaysFirstCallTime) {
                 signinCodeDisplay.classList.add('hidden');
                 signinCodeTimer.classList.remove('hidden');
-                document.getElementById('code-appearance-time').textContent = "No calls today";
+                actorView.querySelector('#code-appearance-time').textContent = "No calls today";
                 return;
             }
             
@@ -820,15 +859,15 @@
                 } else {
                     signinCodeTimer.classList.remove('hidden');
                     signinCodeDisplay.classList.add('hidden');
-                    document.getElementById('code-appearance-time').textContent = formatTime(sixtyMinutesBeforeCall);
+                    actorView.querySelector('#code-appearance-time').textContent = formatTime(sixtyMinutesBeforeCall);
                 }
             }, 1000);
         }
 
-        // --- GLOBAL SCOPE FOR MODAL BUTTONS ---
         window.closeModal = closeModal;
 
     </script>
 </body>
 </html>
+
 
