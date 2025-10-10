@@ -874,6 +874,10 @@
         }
 
         function checkTimeToShowCode() {
+            // Fix: This function can be called on page load before a user is logged in,
+            // which would cause an error. This check prevents that.
+            if (!currentUser) return;
+
             const signinCodeDisplay = document.getElementById('signin-code-display');
             const signinCodeTimer = document.getElementById('signin-code-timer');
 
@@ -926,10 +930,5 @@
     </script>
 </body>
 </html>
-
-
-
-
-
 
 
