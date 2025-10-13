@@ -359,11 +359,19 @@
             
             if (isDirector || isStageManager) {
                 smView.classList.remove('hidden');
-                rehearsalView.classList.add('hidden');
+                rehearsalView.classList.remove('hidden'); // Keep this visible for the code display
+
+                // But hide the actor-specific parts inside it
+                rehearsalView.querySelector('#signin-code-input').classList.add('hidden');
+                rehearsalView.querySelector('#submit-signin-code').classList.add('hidden');
+                rehearsalView.querySelector('#signin-status').classList.add('hidden');
+
                 renderFullAttendanceList();
             } else { // Actors, Tech, etc.
                 smView.classList.add('hidden');
                 rehearsalView.classList.remove('hidden');
+                 // For actors, the code display should be hidden by default
+                rehearsalView.querySelector('#signin-code-display').classList.add('hidden');
             }
             
             const userSelect = document.getElementById('behavior-user-select');
@@ -812,28 +820,32 @@
              const signinCodeDisplay = document.getElementById('signin-code-display');
              const signinCodeTimer = document.getElementById('signin-code-timer');
              const codeEl = document.getElementById('daily-code');
-             const actorView = document.getElementById('actor-rehearsal-signin-view');
 
             if (force) {
-                actorView.querySelector('#signin-code-timer').classList.add('hidden');
-                actorView.querySelector('#signin-code-display').classList.remove('hidden');
+                signinCodeTimer.classList.add('hidden');
+                signinCodeDisplay.classList.remove('hidden');
             }
             
             const today = getTodayDateString();
             const codeRef = doc(db, "codes", today);
             let codeDoc = await getDoc(codeRef);
 
+            let codeToDisplay;
             if (!codeDoc.exists()) {
                 const newCode = Math.floor(1000 + Math.random() * 9000).toString();
                 await setDoc(codeRef, { code: newCode });
-                actorView.querySelector('#daily-code').textContent = newCode;
+                codeToDisplay = newCode;
             } else {
-                actorView.querySelector('#daily-code').textContent = codeDoc.data().code;
+                codeToDisplay = codeDoc.data().code;
             }
+            codeEl.textContent = codeToDisplay;
         }
         
         function checkTimeToShowCode() {
             if (!currentUser) return;
+
+            // This function should only affect what actors see. SMs/Directors use the force button.
+            if (currentUser.role === 'Director' || currentUser.role === 'Stage Manager') return;
 
             const actorView = document.getElementById('actor-rehearsal-signin-view');
             const signinCodeDisplay = actorView.querySelector('#signin-code-display');
@@ -869,5 +881,4 @@
     </script>
 </body>
 </html>
-
 
