@@ -844,9 +844,6 @@
         function checkTimeToShowCode() {
             if (!currentUser) return;
 
-            // This function should only affect what actors see. SMs/Directors use the force button.
-            if (currentUser.role === 'Director' || currentUser.role === 'Stage Manager') return;
-
             const actorView = document.getElementById('actor-rehearsal-signin-view');
             const signinCodeDisplay = actorView.querySelector('#signin-code-display');
             const signinCodeTimer = actorView.querySelector('#signin-code-timer');
@@ -864,11 +861,18 @@
                 const sixtyMinutesBeforeCall = new Date(todaysFirstCallTime.getTime() - 60 * 60 * 1000);
                 
                 if (now >= sixtyMinutesBeforeCall) {
-                    generateAndShowCode();
+                    generateAndShowCode(); // Generate/fetch the code
+                    
+                    // Only reveal the code display if the user has privileges
+                    if (currentUser.role === 'Director' || currentUser.role === 'Stage Manager') {
+                        signinCodeDisplay.classList.remove('hidden');
+                    }
+                    
+                    // The timer is no longer needed for anyone
                     signinCodeTimer.classList.add('hidden');
-                    signinCodeDisplay.classList.remove('hidden');
                     clearInterval(codeInterval);
                 } else {
+                    // Show the countdown timer to everyone
                     signinCodeTimer.classList.remove('hidden');
                     signinCodeDisplay.classList.add('hidden');
                     actorView.querySelector('#code-appearance-time').textContent = formatTime(sixtyMinutesBeforeCall);
